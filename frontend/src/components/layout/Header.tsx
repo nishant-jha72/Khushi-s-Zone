@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
-import { Search, Heart, ShoppingBag, Menu, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Heart, ShoppingBag, Menu, X, User as UserIcon, LogOut, Package, ChevronDown } from "lucide-react";
 import AnnouncementBar from "./AnnouncementBar";
 import CategoryNavigation from "./CategoryNavigation";
+import { useAuth } from "../../context/AuthContext";
 
 interface HeaderProps {
   wishlistCount: number;
@@ -11,6 +12,7 @@ interface HeaderProps {
   onOpenCart: () => void;
   onOpenWishlist: () => void;
   onOpenLogin: () => void;
+  onOpenAccount: (tab?: string) => void;
   onSelectCategory?: (category: string) => void;
 }
 
@@ -22,11 +24,17 @@ export default function Header({
   onOpenCart,
   onOpenWishlist,
   onOpenLogin,
+  onOpenAccount,
   onSelectCategory,
 }: HeaderProps) {
+  const { user, isAuthenticated, logout } = useAuth();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let lastScrollY = window.scrollY;
@@ -42,10 +50,8 @@ export default function Header({
 
       if (currentScrollY > 100) {
         if (currentScrollY > lastScrollY) {
-          // Scrolling down -> hide navbar
           setIsVisible(false);
         } else {
-          // Scrolling up -> show navbar
           setIsVisible(true);
         }
       } else {
@@ -57,6 +63,17 @@ export default function Header({
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
@@ -88,9 +105,12 @@ export default function Header({
 
               <a
                 href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
                 className="flex items-center space-x-3 sm:space-x-4 group"
               >
-                {/* Visual Brand Monogram Emblem matching logo & reference image */}
                 <div className="flex items-center space-x-2">
                   <img
                     src="/images/logo.png"
@@ -166,13 +186,77 @@ export default function Header({
                 </span>
               </button>
 
-              {/* Login / Signup Outlined Button */}
-              <button
-                onClick={onOpenLogin}
-                className="hidden sm:inline-flex items-center justify-center px-5 py-1.5 border border-[#4A2925] text-[#4A2925] hover:bg-[#4A2925] hover:text-[#F7F2EA] text-[11px] font-semibold tracking-wider uppercase rounded-full transition-all duration-200"
-              >
-                LOGIN / SIGNUP
-              </button>
+              {/* LOGGED IN USER MENUS vs LOGGED OUT BUTTON */}
+              {isAuthenticated && user ? (
+                <div className="relative hidden sm:block" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsUserDropdownOpen((prev) => !prev)}
+                    className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-[#EDE5D5] border border-[#D9CEB9] text-[#4A2925] hover:bg-[#E5DAC8] transition-all"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-[#4A2925] text-[#F7F2EA] flex items-center justify-center text-[10px] font-bold">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs font-semibold max-w-[120px] truncate">
+                      Hi, {user.name.split(" ")[0]}
+                    </span>
+                    <ChevronDown className="w-3.5 h-3.5 text-[#8C7A6B]" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {isUserDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-52 bg-[#FAF7F2] rounded-2xl shadow-xl border border-[#EDE5D5] py-2 z-50 divide-y divide-[#EDE5D5] animate-in fade-in zoom-in-95 duration-150">
+                      <div className="px-4 py-2.5">
+                        <p className="text-xs font-bold text-[#4A2925] truncate">{user.name}</p>
+                        <p className="text-[10px] text-[#8C7A6B] truncate">{user.email}</p>
+                      </div>
+
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            onOpenAccount("profile");
+                          }}
+                          className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
+                        >
+                          <UserIcon className="w-4 h-4 text-[#8C7A6B]" />
+                          <span>My Account</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            onOpenAccount("orders");
+                          }}
+                          className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
+                        >
+                          <Package className="w-4 h-4 text-[#8C7A6B]" />
+                          <span>Past Orders</span>
+                        </button>
+                      </div>
+
+                      <div className="py-1">
+                        <button
+                          onClick={async () => {
+                            setIsUserDropdownOpen(false);
+                            await logout();
+                          }}
+                          className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-red-700 hover:bg-red-50 transition-colors text-left font-semibold"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Login / Signup Outlined Button */
+                <button
+                  onClick={onOpenLogin}
+                  className="hidden sm:inline-flex items-center justify-center px-5 py-1.5 border border-[#4A2925] text-[#4A2925] hover:bg-[#4A2925] hover:text-[#F7F2EA] text-[11px] font-semibold tracking-wider uppercase rounded-full transition-all duration-200"
+                >
+                  LOGIN / SIGNUP
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -193,7 +277,7 @@ export default function Header({
               <div className="flex items-center justify-between pb-4 border-b border-[#EDE5D5]">
                 <div className="flex items-center space-x-2">
                   <span className="font-serif font-bold text-xl text-[#4A2925]">
-                    Kashis Zare
+                    Khushi's Zone
                   </span>
                 </div>
                 <button
@@ -209,6 +293,21 @@ export default function Header({
                   "Your Points of Happiness"
                 </p>
               </div>
+
+              {/* Mobile User Welcome Badge */}
+              {isAuthenticated && user && (
+                <div className="p-3 bg-[#EDE5D5] rounded-xl mb-4 border border-[#D9CEB9] flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-[#4A2925] text-white flex items-center justify-center text-xs font-bold">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-[#4A2925]">{user.name}</p>
+                      <p className="text-[10px] text-[#8C7A6B]">{user.email}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Mobile Search */}
               <div className="my-3 relative">
@@ -259,33 +358,44 @@ export default function Header({
                 >
                   ACCESSORIES
                 </button>
-                <a
-                  href="#track"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
-                >
-                  TRACK ORDER
-                </a>
-                <a
-                  href="#account"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
-                >
-                  MY ACCOUNT
-                </a>
+
+                {isAuthenticated && (
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      onOpenAccount("profile");
+                    }}
+                    className="block w-full text-left py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] font-bold text-[#4A2925]"
+                  >
+                    MY ACCOUNT
+                  </button>
+                )}
               </nav>
             </div>
 
             <div className="pt-6 border-t border-[#EDE5D5] space-y-3">
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  onOpenLogin();
-                }}
-                className="w-full py-2.5 bg-[#4A2925] text-[#F7F2EA] text-xs font-semibold tracking-wider uppercase rounded-full"
-              >
-                LOGIN / SIGNUP
-              </button>
+              {isAuthenticated ? (
+                <button
+                  onClick={async () => {
+                    setIsMobileMenuOpen(false);
+                    await logout();
+                  }}
+                  className="w-full py-2.5 bg-red-800 text-white text-xs font-semibold tracking-wider uppercase rounded-full flex items-center justify-center space-x-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>LOGOUT</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenLogin();
+                  }}
+                  className="w-full py-2.5 bg-[#4A2925] text-[#F7F2EA] text-xs font-semibold tracking-wider uppercase rounded-full"
+                >
+                  LOGIN / SIGNUP
+                </button>
+              )}
             </div>
           </div>
         </div>

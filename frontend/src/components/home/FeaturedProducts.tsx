@@ -1,5 +1,5 @@
 import ProductCard from "../products/ProductCard";
-import type { Product } from "../../data/mockProducts";
+import type { Product } from "../../services/api";
 
 interface FeaturedProductsProps {
   products: Product[];

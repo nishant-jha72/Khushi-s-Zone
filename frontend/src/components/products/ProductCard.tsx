@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Heart, ShoppingBag, Check } from "lucide-react";
-import type { Product } from "../../data/mockProducts";
+import type { Product } from "../../services/api";
 
 interface ProductCardProps {
   product: Product;

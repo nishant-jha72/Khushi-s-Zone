@@ -1,14 +1,5 @@
-export interface Product {
-  id: string;
-  name: string;
-  category: "dresses" | "tops" | "bottoms" | "accessories";
-  price: number;
-  originalPrice?: number;
-  image: string;
-  badge?: string;
-  isNew?: boolean;
-  rating?: number;
-}
+export type { Product } from "../services/api";
+import type { Product } from "../services/api";
 
 export interface CategoryItem {
   id: string;

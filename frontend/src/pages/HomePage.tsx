@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import HeroSection from "../components/home/HeroSection";
@@ -6,49 +6,131 @@ import TrustBar from "../components/home/TrustBar";
 import CategoryGrid from "../components/home/CategoryGrid";
 import FeaturedProducts from "../components/home/FeaturedProducts";
 import BrandStory from "../components/home/BrandStory";
-import { MOCK_PRODUCTS, type Product } from "../data/mockProducts";
+import AuthModal from "../components/auth/AuthModal";
+import { useAuth } from "../context/AuthContext";
+import { getProductsApi, type Product } from "../services/api";
 import { X, ShoppingBag, Heart } from "lucide-react";
 
-export default function HomePage() {
-  // Frontend State
-  const [wishlist, setWishlist] = useState<string[]>([]);
-  const [cartItems, setCartItems] = useState<{ product: Product; quantity: number }[]>([]);
+interface HomePageProps {
+  onOpenAccount: (tab?: string) => void;
+}
+
+export default function HomePage({ onOpenAccount }: HomePageProps) {
+  const {
+    isAuthenticated,
+    cartItems,
+    wishlist,
+    wishlistedProducts,
+    totalCartCount,
+    totalCartPrice,
+    addToCart,
+    removeFromCart,
+    toggleWishlist,
+    verifyEmail,
+  } = useAuth();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  // Modals & Drawers State
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
-  // Handlers
-  const handleToggleWishlist = (productId: string) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-    );
+  useEffect(() => {
+    const loadProducts = async () => {
+      setProductsLoading(true);
+      try {
+        const res = await getProductsApi();
+        if (res.success && res.products) {
+          setProducts(res.products);
+        }
+      } catch (err) {
+        console.error("Failed to load products:", err);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+    loadProducts();
+  }, []);
+
+  // Handle email verification link: ?verify_token=...
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("verify_token");
+    if (!token) return;
+
+    let cancelled = false;
+
+    const runVerify = async () => {
+      try {
+        const res = await verifyEmail(token);
+        if (!cancelled && res.success) {
+          setVerifyNotice("Email verified! Welcome to Khushi's Zone.");
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setVerifyNotice(err.message || "Verification failed. Please try again.");
+          setIsAuthOpen(true);
+          setAuthMode("login");
+        }
+      } finally {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("verify_token");
+        window.history.replaceState({}, "", url.pathname + url.search);
+        if (!cancelled) {
+          setTimeout(() => setVerifyNotice(null), 5000);
+        }
+      }
+    };
+    runVerify();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount for email link
+  }, []);
+
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      setAuthMode("login");
+      setIsAuthOpen(true);
+      return;
+    }
+    action();
   };
 
-  const handleAddToCart = (product: Product) => {
-    setCartItems((prev) => {
-      const existingIndex = prev.findIndex((item) => item.product.id === product.id);
-      if (existingIndex > -1) {
-        const updated = [...prev];
-        updated[existingIndex].quantity += 1;
-        return updated;
+  const handleToggleWishlist = (productId: string) => {
+    requireAuth(async () => {
+      try {
+        await toggleWishlist(productId);
+      } catch (err: any) {
+        console.error(err);
+        setIsAuthOpen(true);
       }
-      return [...prev, { product, quantity: 1 }];
     });
   };
 
-  const handleRemoveFromCart = (productId: string) => {
-    setCartItems((prev) => prev.filter((item) => item.product.id !== productId));
+  const handleAddToCart = (product: Product) => {
+    requireAuth(async () => {
+      try {
+        await addToCart(product);
+      } catch (err: any) {
+        console.error(err);
+        setIsAuthOpen(true);
+      }
+    });
   };
 
-  // Filtered Products based on search query & category filter
+  const handleRemoveFromCart = (cartItemId: number) => {
+    requireAuth(async () => {
+      await removeFromCart(cartItemId);
+    });
+  };
+
   const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter((product) => {
+    return products.filter((product) => {
       const matchesSearch =
         searchQuery === "" ||
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -59,31 +141,26 @@ export default function HomePage() {
 
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
-
-  const totalCartCount = useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
-  }, [cartItems]);
-
-  const totalCartPrice = useMemo(() => {
-    return cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
-  }, [cartItems]);
-
-  const wishlistedProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter((p) => wishlist.includes(p.id));
-  }, [wishlist]);
+  }, [products, searchQuery, selectedCategory]);
 
   return (
     <div className="min-h-screen bg-[#F7F2EA] text-[#4A2925] font-sans antialiased flex flex-col selection:bg-[#4A2925] selection:text-white">
-      {/* Navbar Header */}
       <Header
         wishlistCount={wishlist.length}
         cartCount={totalCartCount}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenLogin={() => setIsLoginOpen(true)}
+        onOpenCart={() =>
+          requireAuth(() => setIsCartOpen(true))
+        }
+        onOpenWishlist={() =>
+          requireAuth(() => setIsWishlistOpen(true))
+        }
+        onOpenLogin={() => {
+          setAuthMode("login");
+          setIsAuthOpen(true);
+        }}
+        onOpenAccount={onOpenAccount}
         onSelectCategory={(slug) => {
           setSelectedCategory(slug === selectedCategory ? null : slug);
           const el = document.getElementById("featured-products");
@@ -91,9 +168,13 @@ export default function HomePage() {
         }}
       />
 
-      {/* Main Content Sections */}
+      {verifyNotice && (
+        <div className="bg-emerald-50 border-b border-emerald-200 text-emerald-800 text-xs font-medium text-center py-3 px-4">
+          {verifyNotice}
+        </div>
+      )}
+
       <main className="flex-1">
-        {/* Active Filter Notification if category or search active */}
         {(selectedCategory || searchQuery) && (
           <div className="bg-[#EDE5D5] py-3 px-6 text-center text-xs font-semibold tracking-wider text-[#4A2925] flex items-center justify-center space-x-3 border-b border-[#D9CEB9]">
             <span>
@@ -112,7 +193,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* A. Hero Section */}
         <HeroSection
           onExploreClick={() => {
             const el = document.getElementById("featured-products");
@@ -120,10 +200,8 @@ export default function HomePage() {
           }}
         />
 
-        {/* B. Trust Bar */}
         <TrustBar />
 
-        {/* C. Shop by Category */}
         <CategoryGrid
           onSelectCategory={(slug) => {
             setSelectedCategory(slug);
@@ -132,24 +210,24 @@ export default function HomePage() {
           }}
         />
 
-        {/* D. Featured Products */}
         <div id="featured-products">
-          <FeaturedProducts
-            products={filteredProducts}
-            wishlist={wishlist}
-            onToggleWishlist={handleToggleWishlist}
-            onAddToCart={handleAddToCart}
-          />
+          {productsLoading ? (
+            <div className="py-20 text-center text-xs text-[#8C7A6B]">Loading collection...</div>
+          ) : (
+            <FeaturedProducts
+              products={filteredProducts}
+              wishlist={wishlist}
+              onToggleWishlist={handleToggleWishlist}
+              onAddToCart={handleAddToCart}
+            />
+          )}
         </div>
 
-        {/* E. Brand Story */}
         <BrandStory />
       </main>
 
-      {/* Footer */}
       <Footer />
 
-      {/* Slide-over Cart Drawer */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
@@ -181,7 +259,7 @@ export default function HomePage() {
                 </div>
               ) : (
                 cartItems.map((item) => (
-                  <div key={item.product.id} className="py-4 flex space-x-4">
+                  <div key={item.cartItemId} className="py-4 flex space-x-4">
                     <img
                       src={item.product.image}
                       alt={item.product.name}
@@ -191,13 +269,15 @@ export default function HomePage() {
                       <h4 className="font-serif text-xs font-semibold text-[#4A2925]">
                         {item.product.name}
                       </h4>
-                      <p className="text-xs text-[#8C7A6B]">Qty: {item.quantity}</p>
+                      <p className="text-xs text-[#8C7A6B]">
+                        Qty: {item.quantity} · Size: {item.size}
+                      </p>
                       <p className="text-xs font-bold text-[#4A2925]">
                         ₹ {(item.product.price * item.quantity).toLocaleString("en-IN")}
                       </p>
                     </div>
                     <button
-                      onClick={() => handleRemoveFromCart(item.product.id)}
+                      onClick={() => handleRemoveFromCart(item.cartItemId)}
                       className="text-xs text-red-700 hover:underline self-start"
                     >
                       Remove
@@ -217,10 +297,13 @@ export default function HomePage() {
                   Taxes and shipping calculated at checkout
                 </p>
                 <button
-                  onClick={() => alert("Checkout system is ready for backend integration!")}
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    onOpenAccount("orders");
+                  }}
                   className="w-full py-3 bg-[#4A2925] text-white text-xs font-semibold tracking-widest uppercase rounded-full hover:bg-[#3D211E] transition-colors"
                 >
-                  PROCEED TO CHECKOUT
+                  VIEW ACCOUNT / ORDERS
                 </button>
               </div>
             )}
@@ -228,7 +311,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Slide-over Wishlist Drawer */}
       {isWishlistOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           <div
@@ -300,84 +382,11 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Login Modal */}
-      {isLoginOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
-            onClick={() => setIsLoginOpen(false)}
-          />
-          <div className="relative w-full max-w-md bg-[#FAF7F2] rounded-2xl shadow-2xl p-8 z-10 border border-[#EDE5D5]">
-            <button
-              onClick={() => setIsLoginOpen(false)}
-              className="absolute top-4 right-4 p-1 text-[#8C7A6B] hover:text-[#4A2925]"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="text-center mb-6 space-y-1">
-              <h3 className="font-serif text-2xl font-bold text-[#4A2925]">
-                Welcome to Khushi's Zone
-              </h3>
-              <p className="text-xs text-[#8C7A6B]">
-                Sign in to your account to manage orders & wishlist
-              </p>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setIsLoginOpen(false);
-              }}
-              className="space-y-4 text-left"
-            >
-              <div>
-                <label className="block text-[11px] font-bold text-[#4A2925] tracking-wider uppercase mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@example.com"
-                  className="w-full px-4 py-2.5 bg-white border border-[#EDE5D5] rounded-lg text-xs focus:ring-1 focus:ring-[#4A2925] focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-[#4A2925] tracking-wider uppercase mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-4 py-2.5 bg-white border border-[#EDE5D5] rounded-lg text-xs focus:ring-1 focus:ring-[#4A2925] focus:outline-none"
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-[#4A2925]">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="rounded border-[#EDE5D5] text-[#4A2925] focus:ring-[#4A2925]"
-                  />
-                  <span className="ml-2 text-[#8C7A6B]">Remember me</span>
-                </label>
-                <a href="#" className="hover:underline font-semibold">
-                  Forgot password?
-                </a>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 bg-[#4A2925] text-white rounded-full text-xs font-bold tracking-widest uppercase hover:bg-[#3D211E] transition-colors shadow-sm"
-              >
-                SIGN IN
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        initialMode={authMode}
+      />
     </div>
   );
 }
