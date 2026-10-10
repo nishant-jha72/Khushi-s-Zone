@@ -2,7 +2,6 @@ const { Pool } = require("pg");
 const fs = require("fs");
 const path = require("path");
 const dotenv = require("dotenv");
-const { seedData } = require("../db/seed");
 
 dotenv.config();
 
@@ -30,15 +29,13 @@ async function initializeDatabase() {
 
     const schemaPath = path.join(__dirname, "../db/schema.sql");
 
-    if (fs.existsSync(schemaPath)) {
-      const schemaSql = fs.readFileSync(schemaPath, "utf8");
-      await client.query(schemaSql);
-      console.log("⚙️ Database schema verified.");
-    }
+    // if (fs.existsSync(schemaPath)) {
+    //   const schemaSql = fs.readFileSync(schemaPath, "utf8");
+    //   await client.query(schemaSql);
+    //   console.log("⚙️ Database schema verified.");
+    // }
 
     client.release();
-
-    await seedData(pool);
   } catch (error) {
     console.error("❌ Database initialization error:", error.message);
   }

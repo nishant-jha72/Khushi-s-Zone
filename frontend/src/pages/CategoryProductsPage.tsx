@@ -21,17 +21,14 @@ export default function CategoryProductsPage({
   onOpenAccount,
   onOpenAdmin,
 }: CategoryProductsPageProps) {
-  const {
-    wishlist,
-    addToCart,
-    toggleWishlist,
-    totalCartCount,
-  } = useAuth();
+  const { wishlist, addToCart, toggleWishlist, totalCartCount } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<"featured" | "low_high" | "high_low" | "newest">("featured");
+  const [sortBy, setSortBy] = useState<
+    "featured" | "low_high" | "high_low" | "newest"
+  >("featured");
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [maxPrice, setMaxPrice] = useState<number>(10000);
 
@@ -39,7 +36,10 @@ export default function CategoryProductsPage({
     const fetchCategoryProducts = async () => {
       setLoading(true);
       try {
-        const res = await getProductsApi(categorySlug || undefined, search || undefined);
+        const res = await getProductsApi(
+          categorySlug || undefined,
+          search || undefined,
+        );
         if (res.success && res.products) {
           setProducts(res.products);
         }
@@ -77,7 +77,8 @@ export default function CategoryProductsPage({
   }, [products, maxPrice, selectedSize, sortBy]);
 
   const categoryTitle =
-    categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1).replace("-", " ");
+    categorySlug.charAt(0).toUpperCase() +
+    categorySlug.slice(1).replace("-", " ");
 
   return (
     <div className="min-h-screen bg-[#F7F2EA] text-[#4A2925] font-sans antialiased flex flex-col">
@@ -93,35 +94,35 @@ export default function CategoryProductsPage({
         onOpenAdmin={onOpenAdmin}
         onSelectCategory={() => {}}
       />
-
       {/* Hero Banner for Category */}
-      <div className="bg-[#EDE5D5] py-12 px-6 sm:px-12 border-b border-[#D9CEB9]">
-        <div className="max-w-7xl mx-auto space-y-3">
+      <div className="bg-[#EDE5D5] py-5 px-4 sm:px-8 border-b border-[#D9CEB9]">
+        <div className="max-w-5xl mx-auto space-y-2">
           <button
             onClick={onBackToHome}
-            className="inline-flex items-center space-x-2 text-xs font-semibold text-[#8C7A6B] hover:text-[#4A2925] transition-colors mb-2"
+            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8C7A6B] hover:text-[#4A2925] transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Storefront</span>
           </button>
 
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <span className="text-[10px] font-bold tracking-widest uppercase text-[#8C7A6B]">
+              <span className="text-[9px] font-bold tracking-widest uppercase text-[#8C7A6B]">
                 COLLECTION
               </span>
-              <h1 className="font-serif text-3xl sm:text-5xl font-normal text-[#4A2925] tracking-tight mt-1">
+
+              <h1 className="font-serif text-2xl sm:text-3xl font-normal text-[#4A2925] tracking-tight mt-0.5">
                 {categoryTitle}
               </h1>
             </div>
 
-            <p className="text-xs font-semibold text-[#6E493F]">
-              Showing {filteredAndSortedProducts.length} items from database
+            <p className="text-[11px] font-semibold text-[#6E493F]">
+              Showing {filteredAndSortedProducts.length} items from inventory
             </p>
           </div>
         </div>
       </div>
-
+      ```
       {/* Main Filter & Products Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 sm:px-12 py-10">
         {/* Controls Bar */}
@@ -168,7 +169,9 @@ export default function CategoryProductsPage({
 
           {/* Sort Dropdown */}
           <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
-            <span className="text-xs font-semibold text-[#8C7A6B]">Sort by:</span>
+            <span className="text-xs font-semibold text-[#8C7A6B]">
+              Sort by:
+            </span>
             <select
               value={sortBy}
               onChange={(e: any) => setSortBy(e.target.value)}
@@ -186,14 +189,19 @@ export default function CategoryProductsPage({
         {loading ? (
           <div className="py-24 text-center space-y-3">
             <div className="w-8 h-8 border-2 border-[#4A2925] border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-[#8C7A6B] font-medium">Fetching catalog from database...</p>
+            <p className="text-xs text-[#8C7A6B] font-medium">
+              Fetching catalog from database...
+            </p>
           </div>
         ) : filteredAndSortedProducts.length === 0 ? (
           <div className="bg-white rounded-2xl p-16 border border-[#EDE5D5] text-center max-w-md mx-auto space-y-4 shadow-xs">
             <div className="text-4xl">🛍️</div>
-            <h3 className="font-serif text-lg font-bold text-[#4A2925]">No products found</h3>
+            <h3 className="font-serif text-lg font-bold text-[#4A2925]">
+              No products found
+            </h3>
             <p className="text-xs text-[#8C7A6B]">
-              We couldn't find any products matching your selected filters in {categoryTitle}.
+              We couldn't find any products matching your selected filters in{" "}
+              {categoryTitle}.
             </p>
             <button
               onClick={() => {
@@ -221,7 +229,6 @@ export default function CategoryProductsPage({
           </div>
         )}
       </main>
-
       <Footer />
     </div>
   );
