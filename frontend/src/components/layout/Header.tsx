@@ -13,6 +13,7 @@ interface HeaderProps {
   onOpenWishlist: () => void;
   onOpenLogin: () => void;
   onOpenAccount: (tab?: string) => void;
+  onOpenAdmin?: () => void;
   onSelectCategory?: (category: string) => void;
 }
 
@@ -25,6 +26,7 @@ export default function Header({
   onOpenWishlist,
   onOpenLogin,
   onOpenAccount,
+  onOpenAdmin,
   onSelectCategory,
 }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
@@ -231,6 +233,18 @@ export default function Header({
                           <Package className="w-4 h-4 text-[#8C7A6B]" />
                           <span>Past Orders</span>
                         </button>
+                        {user.isAdmin && onOpenAdmin && (
+                          <button
+                            onClick={() => {
+                              setIsUserDropdownOpen(false);
+                              onOpenAdmin();
+                            }}
+                            className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-pink-700 bg-pink-50 hover:bg-pink-100 transition-colors text-left font-bold"
+                          >
+                            <Package className="w-4 h-4 text-pink-700" />
+                            <span>Admin Portal ⚙️</span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="py-1">

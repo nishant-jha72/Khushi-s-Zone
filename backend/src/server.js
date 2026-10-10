@@ -11,6 +11,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const productRoutes = require("./routes/productRoutes");
+const productMediaRoutes = require("./routes/productMedia.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,6 +27,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api", productRoutes);
+app.use("/api", productMediaRoutes);
+
 
 // Global Error Handler
 app.use((err, req, res, next) => {

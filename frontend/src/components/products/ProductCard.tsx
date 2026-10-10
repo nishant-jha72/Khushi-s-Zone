@@ -7,6 +7,7 @@ interface ProductCardProps {
   isWishlisted?: boolean;
   onToggleWishlist?: (productId: string) => void;
   onAddToCart?: (product: Product) => void;
+  onSelectProduct?: (productId: string) => void;
 }
 
 export default function ProductCard({
@@ -14,8 +15,15 @@ export default function ProductCard({
   isWishlisted = false,
   onToggleWishlist,
   onAddToCart,
+  onSelectProduct,
 }: ProductCardProps) {
   const [added, setAdded] = useState(false);
+
+  const handleCardClick = () => {
+    if (onSelectProduct) {
+      onSelectProduct(product.id);
+    }
+  };
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,9 +42,12 @@ export default function ProductCard({
   };
 
   return (
-    <div className="group bg-white rounded-lg overflow-hidden border border-[#EDE5D5]/80 hover:border-[#4A2925]/30 hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+    <div
+      onClick={handleCardClick}
+      className="group bg-white rounded-lg overflow-hidden border border-[#EDE5D5]/80 hover:border-[#4A2925]/30 hover:shadow-md transition-all duration-300 flex flex-col justify-between cursor-pointer"
+    >
       {/* Image Container */}
-      <div className="relative aspect-[3/4] overflow-hidden bg-[#F7F2EA] cursor-pointer">
+      <div className="relative aspect-[3/4] overflow-hidden bg-[#F7F2EA]">
         <img
           src={product.image}
           alt={product.name}

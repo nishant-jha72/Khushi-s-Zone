@@ -27,6 +27,7 @@ export interface UserProfile {
   pincode?: string;
   avatar?: string;
   isVerified?: boolean;
+  isAdmin?: boolean;
 }
 
 export interface CartEntry {

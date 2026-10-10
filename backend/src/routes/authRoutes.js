@@ -16,11 +16,12 @@ const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : nul
 
 // Helper to generate JWT tokens
 function generateTokens(user) {
-  const payload = { userId: user.id, email: user.email, name: user.name };
+  const payload = { userId: user.id, email: user.email, name: user.name, isAdmin: Boolean(user.is_admin) };
   const accessToken = jwt.sign(payload, JWT_ACCESS_SECRET, { expiresIn: "15m" });
   const refreshToken = jwt.sign(payload, JWT_REFRESH_SECRET, { expiresIn: "7d" });
   return { accessToken, refreshToken };
 }
+
 
 /**
  * @route   POST /api/auth/register
@@ -131,7 +132,8 @@ router.post("/verify-email", async (req, res) => {
         state: user.state || "",
         pincode: user.pincode || "",
         avatar: user.avatar || "",
-        isVerified: true
+        isVerified: true,
+        isAdmin: Boolean(user.is_admin)
       }
     });
   } catch (error) {
@@ -199,7 +201,8 @@ router.post("/login", async (req, res) => {
         state: user.state || "",
         pincode: user.pincode || "",
         avatar: user.avatar || "",
-        isVerified: user.is_verified
+        isVerified: user.is_verified,
+        isAdmin: Boolean(user.is_admin)
       }
     });
   } catch (error) {
@@ -287,7 +290,8 @@ router.post("/google", async (req, res) => {
         state: user.state || "",
         pincode: user.pincode || "",
         avatar: user.avatar || avatar || "",
-        isVerified: true
+        isVerified: true,
+        isAdmin: Boolean(user.is_admin)
       }
     });
   } catch (error) {
@@ -359,7 +363,7 @@ router.post("/logout", async (req, res) => {
  */
 router.get("/me", authenticateToken, async (req, res) => {
   try {
-    const userRes = await query("SELECT id, name, email, phone, address, city, state, pincode, avatar, is_verified, created_at FROM users WHERE id = $1", [req.user.userId]);
+    const userRes = await query("SELECT id, name, email, phone, address, city, state, pincode, avatar, is_verified, is_admin, created_at FROM users WHERE id = $1", [req.user.userId]);
 
     if (userRes.rows.length === 0) {
       return res.status(444).json({ success: false, message: "User not found" });
@@ -379,11 +383,55 @@ router.get("/me", authenticateToken, async (req, res) => {
         pincode: u.pincode || "",
         avatar: u.avatar || "",
         isVerified: u.is_verified,
+        isAdmin: Boolean(u.is_admin),
         createdAt: u.created_at
       }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Failed to fetch user profile" });
+  }
+});
+
+/**
+ * @route   POST /api/auth/make-admin
+ * @desc    Bootstrap: Promote a user to admin using a secret key (one-time setup)
+ */
+router.post("/make-admin", async (req, res) => {
+  try {
+    const { email, secret } = req.body;
+    const ADMIN_SECRET = process.env.ADMIN_BOOTSTRAP_SECRET || "KhushiZoneAdmin@2026!";
+
+    if (!ADMIN_SECRET) {
+      return res.status(503).json({ success: false, message: "Admin bootstrap is not configured on this server." });
+    }
+
+    if (!secret || secret !== ADMIN_SECRET) {
+      return res.status(403).json({ success: false, message: "Invalid bootstrap secret." });
+    }
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required." });
+    }
+
+    const userRes = await query("SELECT id, name, email, is_admin FROM users WHERE email = $1", [email.toLowerCase().trim()]);
+    if (userRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "No user found with this email. Register first." });
+    }
+
+    const user = userRes.rows[0];
+    if (user.is_admin) {
+      return res.json({ success: true, message: `${user.name} is already an admin.` });
+    }
+
+    await query("UPDATE users SET is_admin = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1", [user.id]);
+
+    res.json({
+      success: true,
+      message: `✅ ${user.name} (${user.email}) has been granted admin access. Please log in again to refresh your token.`
+    });
+  } catch (error) {
+    console.error("Error in /make-admin:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 

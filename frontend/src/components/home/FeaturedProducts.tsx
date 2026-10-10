@@ -6,6 +6,7 @@ interface FeaturedProductsProps {
   wishlist: string[];
   onToggleWishlist: (productId: string) => void;
   onAddToCart: (product: Product) => void;
+  onSelectProduct?: (productId: string) => void;
 }
 
 export default function FeaturedProducts({
@@ -13,6 +14,7 @@ export default function FeaturedProducts({
   wishlist,
   onToggleWishlist,
   onAddToCart,
+  onSelectProduct,
 }: FeaturedProductsProps) {
   return (
     <section className="w-full bg-[#F7F2EA] py-16 px-6 sm:px-10 lg:px-16 border-t border-[#EDE5D5]">
@@ -39,6 +41,7 @@ export default function FeaturedProducts({
                 isWishlisted={wishlist.includes(product.id)}
                 onToggleWishlist={onToggleWishlist}
                 onAddToCart={onAddToCart}
+                onSelectProduct={onSelectProduct}
               />
             ))}
           </div>

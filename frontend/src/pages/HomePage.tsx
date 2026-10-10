@@ -13,9 +13,17 @@ import { X, ShoppingBag, Heart } from "lucide-react";
 
 interface HomePageProps {
   onOpenAccount: (tab?: string) => void;
+  onOpenAdmin?: () => void;
+  onSelectCategory?: (categorySlug: string) => void;
+  onSelectProduct?: (productId: string) => void;
 }
 
-export default function HomePage({ onOpenAccount }: HomePageProps) {
+export default function HomePage({
+  onOpenAccount,
+  onOpenAdmin,
+  onSelectCategory,
+  onSelectProduct,
+}: HomePageProps) {
   const {
     isAuthenticated,
     cartItems,
@@ -43,7 +51,7 @@ export default function HomePage({ onOpenAccount }: HomePageProps) {
     const loadProducts = async () => {
       setProductsLoading(true);
       try {
-        const res = await getProductsApi();
+        const res = await getProductsApi(selectedCategory || undefined, searchQuery || undefined);
         if (res.success && res.products) {
           setProducts(res.products);
         }
@@ -54,7 +62,7 @@ export default function HomePage({ onOpenAccount }: HomePageProps) {
       }
     };
     loadProducts();
-  }, []);
+  }, [selectedCategory, searchQuery]);
 
   // Handle email verification link: ?verify_token=...
   useEffect(() => {
@@ -161,10 +169,13 @@ export default function HomePage({ onOpenAccount }: HomePageProps) {
           setIsAuthOpen(true);
         }}
         onOpenAccount={onOpenAccount}
+        onOpenAdmin={onOpenAdmin}
         onSelectCategory={(slug) => {
-          setSelectedCategory(slug === selectedCategory ? null : slug);
-          const el = document.getElementById("featured-products");
-          if (el) el.scrollIntoView({ behavior: "smooth" });
+          if (onSelectCategory) {
+            onSelectCategory(slug);
+          } else {
+            setSelectedCategory(slug === selectedCategory ? null : slug);
+          }
         }}
       />
 
@@ -204,9 +215,11 @@ export default function HomePage({ onOpenAccount }: HomePageProps) {
 
         <CategoryGrid
           onSelectCategory={(slug) => {
-            setSelectedCategory(slug);
-            const el = document.getElementById("featured-products");
-            if (el) el.scrollIntoView({ behavior: "smooth" });
+            if (onSelectCategory) {
+              onSelectCategory(slug);
+            } else {
+              setSelectedCategory(slug);
+            }
           }}
         />
 
@@ -219,6 +232,7 @@ export default function HomePage({ onOpenAccount }: HomePageProps) {
               wishlist={wishlist}
               onToggleWishlist={handleToggleWishlist}
               onAddToCart={handleAddToCart}
+              onSelectProduct={onSelectProduct}
             />
           )}
         </div>

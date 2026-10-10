@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   google_id VARCHAR(255) DEFAULT NULL,
   avatar TEXT DEFAULT '',
   is_verified BOOLEAN DEFAULT FALSE,
+  is_admin BOOLEAN DEFAULT FALSE,
   verification_token VARCHAR(255) DEFAULT NULL,
   verification_token_expires TIMESTAMP DEFAULT NULL,
   refresh_token TEXT DEFAULT NULL,
@@ -40,6 +41,13 @@ CREATE TABLE IF NOT EXISTS items (
   image_url TEXT NOT NULL,
   rating NUMERIC(3,2) DEFAULT 4.8,
   is_bestseller BOOLEAN DEFAULT FALSE,
+  sku VARCHAR(100),
+  brand VARCHAR(150),
+  material VARCHAR(255),
+  care_instructions TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  stock_status VARCHAR(50) DEFAULT 'in_stock',
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -81,3 +89,51 @@ CREATE TABLE IF NOT EXISTS order_items (
   price NUMERIC(10,2) NOT NULL,
   size VARCHAR(10) DEFAULT 'M'
 );
+
+CREATE TABLE IF NOT EXISTS product_media (
+  id SERIAL PRIMARY KEY,
+  product_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  media_type VARCHAR(20) NOT NULL CHECK (media_type IN ('image', 'video')),
+  media_url TEXT NOT NULL,
+  public_id TEXT NOT NULL,
+  alt_text TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ─── item_colors ─────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS item_colors (
+  id SERIAL PRIMARY KEY,
+  item_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  color_name VARCHAR(100) NOT NULL,
+  hex_code VARCHAR(7),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_item_color UNIQUE(item_id, color_name)
+);
+
+-- ─── item_variants ────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS item_variants (
+  id SERIAL PRIMARY KEY,
+  item_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  color_id INT REFERENCES item_colors(id) ON DELETE SET NULL,
+  size VARCHAR(50) NOT NULL,
+  sku VARCHAR(100),
+  price NUMERIC(10,2),
+  original_price NUMERIC(10,2),
+  stock_quantity INT NOT NULL DEFAULT 0,
+  supplier_sku VARCHAR(100),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_item_color_size UNIQUE(item_id, color_id, size)
+);
+
+-- ─── Indexes ─────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_item_colors_item_id       ON item_colors(item_id);
+CREATE INDEX IF NOT EXISTS idx_item_variants_item_id     ON item_variants(item_id);
+CREATE INDEX IF NOT EXISTS idx_item_variants_color_id    ON item_variants(color_id);
+CREATE INDEX IF NOT EXISTS idx_product_media_product_id  ON product_media(product_id);
+CREATE INDEX IF NOT EXISTS idx_items_category_id         ON items(category_id);
+CREATE INDEX IF NOT EXISTS idx_items_is_active           ON items(is_active);

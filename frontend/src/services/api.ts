@@ -228,3 +228,7 @@ export async function getProductsApi(category?: string, search?: string) {
 export async function getCategoriesApi() {
   return apiFetch("/categories");
 }
+
+export async function getProductDetailApi(id: string | number) {
+  return apiFetch(`/products/${id}`);
+}
