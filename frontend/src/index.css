@@ -15,3 +15,8 @@
     padding: 0;
   }
 }
+
+/* Override Tailwind max-w-7xl to use full width across the site */
+@layer utilities {
+  .max-w-7xl { max-width: 100% !important; }
+}
