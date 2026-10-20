@@ -12,6 +12,7 @@ interface CategoryProductsPageProps {
   onSelectProduct: (productId: string) => void;
   onOpenAccount: (tab?: string) => void;
   onOpenAdmin?: () => void;
+  onSelectCategory?: (slug: string) => void;
 }
 
 export default function CategoryProductsPage({
@@ -20,6 +21,7 @@ export default function CategoryProductsPage({
   onSelectProduct,
   onOpenAccount,
   onOpenAdmin,
+  onSelectCategory,
 }: CategoryProductsPageProps) {
   const { wishlist, addToCart, toggleWishlist, totalCartCount } = useAuth();
 
@@ -92,7 +94,7 @@ export default function CategoryProductsPage({
         onOpenLogin={() => {}}
         onOpenAccount={onOpenAccount}
         onOpenAdmin={onOpenAdmin}
-        onSelectCategory={() => {}}
+        onSelectCategory={onSelectCategory}
       />
       {/* Hero Banner for Category */}
       <div className="bg-[#EDE5D5] py-5 px-4 sm:px-8 border-b border-[#D9CEB9]">
@@ -122,7 +124,7 @@ export default function CategoryProductsPage({
           </div>
         </div>
       </div>
-      ```
+
       {/* Main Filter & Products Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 sm:px-12 py-10">
         {/* Controls Bar */}

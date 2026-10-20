@@ -25,7 +25,7 @@ function formatProductRow(row) {
     originalPrice: row.original_price ? parseFloat(row.original_price) : null,
     sizes: row.sizes || [],
     type: row.type,
-    image: row.image_url,          // legacy field kept for backward-compat
+    image: row.image_url, // legacy field kept for backward-compat
     rating: parseFloat(row.rating || 4.8),
     isBestseller: row.is_bestseller || false,
     sku: row.sku || null,
@@ -52,47 +52,88 @@ function formatProductRow(row) {
  * Paginated list of active products with optional category / search filter.
  * Existing homepage API shape is preserved.
  */
-async function listActiveItems({ page = 1, limit = 20, categorySlug, search } = {}) {
+
+async function listActiveItems({
+  page = 1,
+  limit = 20,
+  categorySlug,
+  search,
+} = {}) {
   const offset = (page - 1) * limit;
-  const params = [];
+
+  // Keep category/search parameters separate from pagination.
+  const filterParams = [];
   let whereClause = "WHERE i.is_active = TRUE";
 
   if (categorySlug) {
-    params.push(`%${categorySlug}%`);
-    whereClause += ` AND (c.slug ILIKE $${params.length} OR c.name ILIKE $${params.length} OR i.type ILIKE $${params.length})`;
+    filterParams.push(categorySlug);
+    whereClause += ` AND c.slug = $${filterParams.length}`;
   }
 
   if (search) {
-    params.push(`%${search}%`);
-    whereClause += ` AND (i.name ILIKE $${params.length} OR i.description ILIKE $${params.length} OR i.type ILIKE $${params.length})`;
+    filterParams.push(`%${search}%`);
+    const searchIndex = filterParams.length;
+
+    whereClause += ` AND (
+      i.name ILIKE $${searchIndex}
+      OR i.description ILIKE $${searchIndex}
+      OR i.type ILIKE $${searchIndex}
+    )`;
   }
 
-  // Count query
-  const countRes = await query(
-    `SELECT COUNT(*) AS total
-     FROM items i
-     LEFT JOIN categories c ON i.category_id = c.id
-     ${whereClause}`,
-    params
-  );
-  const total = parseInt(countRes.rows[0].total, 10);
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM items i
+    LEFT JOIN categories c ON i.category_id = c.id
+    ${whereClause}
+  `;
 
-  // Data query
-  params.push(limit);
-  params.push(offset);
-  const dataRes = await query(
-    `SELECT i.id, i.name, i.description, i.price, i.original_price,
-            i.sizes, i.type, i.image_url, i.rating, i.is_bestseller,
-            i.sku, i.brand, i.material, i.care_instructions,
-            i.is_active, i.stock_status, i.created_at, i.updated_at,
-            c.id AS category_id, c.name AS category_name, c.slug AS category_slug
-     FROM items i
-     LEFT JOIN categories c ON i.category_id = c.id
-     ${whereClause}
-     ORDER BY i.id ASC
-     LIMIT $${params.length - 1} OFFSET $${params.length}`,
-    params
+  const dataSql = `
+    SELECT
+      i.id,
+      i.name,
+      i.description,
+      i.price,
+      i.original_price,
+      i.sizes,
+      i.type,
+      i.image_url,
+      i.rating,
+      i.is_bestseller,
+      i.sku,
+      i.brand,
+      i.material,
+      i.care_instructions,
+      i.is_active,
+      i.stock_status,
+      i.created_at,
+      i.updated_at,
+      c.id AS category_id,
+      c.name AS category_name,
+      c.slug AS category_slug
+    FROM items i
+    LEFT JOIN categories c ON i.category_id = c.id
+    ${whereClause}
+    ORDER BY i.id ASC
+    LIMIT $${filterParams.length + 1}
+    OFFSET $${filterParams.length + 2}
+  `;
+
+  const start = performance.now();
+
+  // Execute both independent queries concurrently.
+  const [countRes, dataRes] = await Promise.all([
+    query(countSql, filterParams),
+    query(dataSql, [...filterParams, limit, offset]),
+  ]);
+
+  console.log(
+    `Product listing queries completed in ${(performance.now() - start).toFixed(
+      2,
+    )} ms`,
   );
+
+  const total = parseInt(countRes.rows[0].total, 10);
 
   return {
     total,
@@ -122,7 +163,7 @@ async function getItemById(id) {
      FROM items i
      LEFT JOIN categories c ON i.category_id = c.id
      WHERE i.id = $1`,
-    [id]
+    [id],
   );
   if (productRes.rows.length === 0) return null;
 
@@ -136,7 +177,7 @@ async function getItemById(id) {
      FROM product_media
      WHERE product_id = $1
      ORDER BY sort_order ASC, created_at ASC`,
-    [id]
+    [id],
   );
   product.images = imagesRes.rows;
 
@@ -146,7 +187,7 @@ async function getItemById(id) {
      FROM item_colors
      WHERE item_id = $1
      ORDER BY id ASC`,
-    [id]
+    [id],
   );
   product.colors = colorsRes.rows;
 
@@ -161,7 +202,7 @@ async function getItemById(id) {
      LEFT JOIN item_colors ic ON iv.color_id = ic.id
      WHERE iv.item_id = $1
      ORDER BY iv.color_id ASC NULLS LAST, iv.size ASC`,
-    [id]
+    [id],
   );
 
   const variants = variantsRes.rows.map((v) => ({
@@ -172,8 +213,11 @@ async function getItemById(id) {
   product.variants = variants;
 
   // 5. Derive available sizes from active variants (union with legacy sizes)
-  const variantSizes = [...new Set(variants.filter((v) => v.isActive).map((v) => v.size))];
-  product.availableSizes = variantSizes.length > 0 ? variantSizes : product.sizes;
+  const variantSizes = [
+    ...new Set(variants.filter((v) => v.isActive).map((v) => v.size)),
+  ];
+  product.availableSizes =
+    variantSizes.length > 0 ? variantSizes : product.sizes;
 
   // 6. Valid color-size combinations
   product.colorSizeCombinations = variants
@@ -193,9 +237,21 @@ async function getItemById(id) {
  */
 async function createItem(data) {
   const {
-    name, categoryId, description, price, originalPrice,
-    sizes, type, imageUrl, rating, isBestseller,
-    sku, brand, material, careInstructions, stockStatus,
+    name,
+    categoryId,
+    description,
+    price,
+    originalPrice,
+    sizes,
+    type,
+    imageUrl,
+    rating,
+    isBestseller,
+    sku,
+    brand,
+    material,
+    careInstructions,
+    stockStatus,
   } = data;
 
   const result = await query(
@@ -221,7 +277,7 @@ async function createItem(data) {
       material || null,
       careInstructions || null,
       stockStatus || "in_stock",
-    ]
+    ],
   );
   return result.rows[0].id;
 }
@@ -270,7 +326,7 @@ async function updateItem(id, data) {
      SET ${setClauses.join(", ")}
      WHERE id = $${paramIndex}
      RETURNING id`,
-    params
+    params,
   );
   return result.rows[0] || null;
 }
@@ -284,7 +340,7 @@ async function setItemActive(id, isActive) {
      SET is_active = $1, updated_at = CURRENT_TIMESTAMP
      WHERE id = $2
      RETURNING id, is_active AS "isActive"`,
-    [isActive, id]
+    [isActive, id],
   );
   return result.rows[0] || null;
 }
@@ -296,7 +352,7 @@ async function deleteItem(id) {
   const mediaRes = await query(
     `SELECT public_id AS "publicId", media_type AS "mediaType"
      FROM product_media WHERE product_id = $1`,
-    [id]
+    [id],
   );
   await query("DELETE FROM items WHERE id = $1", [id]);
   return mediaRes.rows;
@@ -324,7 +380,7 @@ async function upsertColor(itemId, colorName, hexCode) {
      ON CONFLICT (item_id, color_name)
        DO UPDATE SET hex_code = COALESCE(EXCLUDED.hex_code, item_colors.hex_code)
      RETURNING id, item_id AS "itemId", color_name AS "colorName", hex_code AS "hexCode"`,
-    [itemId, colorName.trim(), hexCode || null]
+    [itemId, colorName.trim(), hexCode || null],
   );
   return result.rows[0];
 }
@@ -336,7 +392,7 @@ async function getColors(itemId) {
   const result = await query(
     `SELECT id, color_name AS "colorName", hex_code AS "hexCode"
      FROM item_colors WHERE item_id = $1 ORDER BY id ASC`,
-    [itemId]
+    [itemId],
   );
   return result.rows;
 }
@@ -347,7 +403,7 @@ async function getColors(itemId) {
 async function deleteColor(colorId, itemId) {
   const result = await query(
     `DELETE FROM item_colors WHERE id = $1 AND item_id = $2 RETURNING id`,
-    [colorId, itemId]
+    [colorId, itemId],
   );
   return result.rows.length > 0;
 }
@@ -360,7 +416,16 @@ async function deleteColor(colorId, itemId) {
  * Upsert a variant. Size is required. colorId is optional (null = "any color").
  * Returns the variant row.
  */
-async function upsertVariant({ itemId, colorId, size, sku, price, originalPrice, stockQuantity, supplierSku }) {
+async function upsertVariant({
+  itemId,
+  colorId,
+  size,
+  sku,
+  price,
+  originalPrice,
+  stockQuantity,
+  supplierSku,
+}) {
   const result = await query(
     `INSERT INTO item_variants
        (item_id, color_id, size, sku, price, original_price, stock_quantity, supplier_sku, is_active)
@@ -387,7 +452,7 @@ async function upsertVariant({ itemId, colorId, size, sku, price, originalPrice,
       originalPrice || null,
       stockQuantity != null ? stockQuantity : 0,
       supplierSku || null,
-    ]
+    ],
   );
   return result.rows[0];
 }
@@ -406,7 +471,7 @@ async function getVariants(itemId) {
      LEFT JOIN item_colors ic ON iv.color_id = ic.id
      WHERE iv.item_id = $1
      ORDER BY iv.color_id ASC NULLS LAST, iv.size ASC`,
-    [itemId]
+    [itemId],
   );
   return result.rows.map((v) => ({
     ...v,
@@ -424,7 +489,7 @@ async function setVariantActive(variantId, itemId, isActive) {
      SET is_active = $1, updated_at = CURRENT_TIMESTAMP
      WHERE id = $2 AND item_id = $3
      RETURNING id, is_active AS "isActive"`,
-    [isActive, variantId, itemId]
+    [isActive, variantId, itemId],
   );
   return result.rows[0] || null;
 }
@@ -435,7 +500,7 @@ async function setVariantActive(variantId, itemId, isActive) {
 async function deleteVariant(variantId, itemId) {
   const result = await query(
     `DELETE FROM item_variants WHERE id = $1 AND item_id = $2 RETURNING id`,
-    [variantId, itemId]
+    [variantId, itemId],
   );
   return result.rows.length > 0;
 }

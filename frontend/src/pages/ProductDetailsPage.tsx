@@ -18,6 +18,7 @@ interface ProductDetailsPageProps {
   onBack: () => void;
   onOpenAccount: (tab?: string) => void;
   onOpenAdmin?: () => void;
+  onSelectCategory?: (slug: string) => void;
 }
 
 export default function ProductDetailsPage({
@@ -25,6 +26,7 @@ export default function ProductDetailsPage({
   onBack,
   onOpenAccount,
   onOpenAdmin,
+  onSelectCategory,
 }: ProductDetailsPageProps) {
   const { wishlist, toggleWishlist, addToCart, totalCartCount } = useAuth();
 
@@ -94,6 +96,7 @@ export default function ProductDetailsPage({
           onOpenLogin={() => {}}
           onOpenAccount={onOpenAccount}
           onOpenAdmin={onOpenAdmin}
+          onSelectCategory={onSelectCategory}
         />
         <div className="py-32 text-center space-y-4">
           <div className="w-10 h-10 border-3 border-[#4A2925] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -117,6 +120,7 @@ export default function ProductDetailsPage({
           onOpenLogin={() => {}}
           onOpenAccount={onOpenAccount}
           onOpenAdmin={onOpenAdmin}
+          onSelectCategory={onSelectCategory}
         />
         <div className="py-24 text-center max-w-md mx-auto space-y-4">
           <h2 className="text-xl font-serif font-bold text-[#4A2925]">Product Not Found</h2>
@@ -159,6 +163,7 @@ export default function ProductDetailsPage({
         onOpenLogin={() => {}}
         onOpenAccount={onOpenAccount}
         onOpenAdmin={onOpenAdmin}
+        onSelectCategory={onSelectCategory}
       />
 
       {/* Breadcrumb & Navigation Header */}

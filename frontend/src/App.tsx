@@ -53,6 +53,7 @@ function App() {
         onSelectProduct={openProduct}
         onOpenAccount={openAccount}
         onOpenAdmin={openAdmin}
+        onSelectCategory={openCategory}
       />
     );
   }
@@ -64,6 +65,7 @@ function App() {
         onBack={() => setView("category")}
         onOpenAccount={openAccount}
         onOpenAdmin={openAdmin}
+        onSelectCategory={openCategory}
       />
     );
   }
