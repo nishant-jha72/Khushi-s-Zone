@@ -20,7 +20,12 @@ async function listProducts(req, res) {
     const categorySlug = req.query.category || req.query.categorySlug;
     const search = req.query.search;
 
-    const result = await itemModel.listActiveItems({ page, limit, categorySlug, search });
+    const result = await itemModel.listActiveItems({
+      page,
+      limit,
+      categorySlug,
+      search,
+    });
 
     // Format for existing frontend contract
     const products = result.items.map((item) => ({
@@ -54,7 +59,9 @@ async function listProducts(req, res) {
     });
   } catch (error) {
     console.error("Error fetching products:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch products" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch products" });
   }
 }
 
@@ -68,12 +75,16 @@ async function getProduct(req, res) {
     const numericId = parseInt(id, 10);
 
     if (isNaN(numericId) || numericId <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid product ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID" });
     }
 
     const product = await itemModel.getItemById(numericId);
     if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.json({
@@ -82,7 +93,9 @@ async function getProduct(req, res) {
     });
   } catch (error) {
     console.error("Error fetching product detail:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch product details" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch product details" });
   }
 }
 
@@ -102,7 +115,9 @@ async function createProduct(req, res) {
     });
   } catch (error) {
     console.error("Error creating product:", error);
-    res.status(500).json({ success: false, message: "Failed to create product" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to create product" });
   }
 }
 
@@ -116,12 +131,16 @@ async function updateProduct(req, res) {
     const numericId = parseInt(id, 10);
 
     if (isNaN(numericId) || numericId <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid product ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID" });
     }
 
     const exists = await itemModel.itemExists(numericId);
     if (!exists) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     await itemModel.updateItem(numericId, req.body);
@@ -134,7 +153,9 @@ async function updateProduct(req, res) {
     });
   } catch (error) {
     console.error("Error updating product:", error);
-    res.status(500).json({ success: false, message: "Failed to update product" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update product" });
   }
 }
 
@@ -149,16 +170,23 @@ async function setProductStatus(req, res) {
 
     const numericId = parseInt(id, 10);
     if (isNaN(numericId) || numericId <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid product ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID" });
     }
 
     if (typeof isActive !== "boolean") {
-      return res.status(400).json({ success: false, message: "'isActive' boolean field is required" });
+      return res.status(400).json({
+        success: false,
+        message: "'isActive' boolean field is required",
+      });
     }
 
     const updated = await itemModel.setItemActive(numericId, isActive);
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     res.json({
@@ -168,7 +196,9 @@ async function setProductStatus(req, res) {
     });
   } catch (error) {
     console.error("Error setting product status:", error);
-    res.status(500).json({ success: false, message: "Failed to update product status" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update product status" });
   }
 }
 
@@ -182,12 +212,16 @@ async function deleteProduct(req, res) {
     const numericId = parseInt(id, 10);
 
     if (isNaN(numericId) || numericId <= 0) {
-      return res.status(400).json({ success: false, message: "Invalid product ID" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid product ID" });
     }
 
     const exists = await itemModel.itemExists(numericId);
     if (!exists) {
-      return res.status(404).json({ success: false, message: "Product not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Product not found" });
     }
 
     const mediaList = await itemModel.deleteItem(numericId);
@@ -196,7 +230,10 @@ async function deleteProduct(req, res) {
       try {
         await cloudinaryService.deleteMedia(media.publicId, media.mediaType);
       } catch (cloudinaryErr) {
-        console.error(`⚠️ Failed to delete Cloudinary asset ${media.publicId}:`, cloudinaryErr.message);
+        console.error(
+          `⚠️ Failed to delete Cloudinary asset ${media.publicId}:`,
+          cloudinaryErr.message,
+        );
       }
     }
 
@@ -206,7 +243,9 @@ async function deleteProduct(req, res) {
     });
   } catch (error) {
     console.error("Error deleting product:", error);
-    res.status(500).json({ success: false, message: "Failed to delete product" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete product" });
   }
 }
 
@@ -221,7 +260,9 @@ async function addProductColor(req, res) {
     const numericId = parseInt(id, 10);
 
     if (!colorName || !colorName.trim()) {
-      return res.status(400).json({ success: false, message: "Color name is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Color name is required" });
     }
 
     const color = await itemModel.upsertColor(numericId, colorName, hexCode);
@@ -253,7 +294,9 @@ async function getVariants(req, res) {
     });
   } catch (error) {
     console.error("Error fetching product variants:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch variants" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch variants" });
   }
 }
 
@@ -295,12 +338,21 @@ async function setVariantStatus(req, res) {
     const numericVariantId = parseInt(variantId, 10);
 
     if (typeof isActive !== "boolean") {
-      return res.status(400).json({ success: false, message: "'isActive' boolean is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "'isActive' boolean is required" });
     }
 
-    const updated = await itemModel.setVariantActive(numericVariantId, numericId, isActive);
+    const updated = await itemModel.setVariantActive(
+      numericVariantId,
+      numericId,
+      isActive,
+    );
     if (!updated) {
-      return res.status(404).json({ success: false, message: "Variant not found for this product" });
+      return res.status(404).json({
+        success: false,
+        message: "Variant not found for this product",
+      });
     }
 
     res.json({
@@ -310,9 +362,12 @@ async function setVariantStatus(req, res) {
     });
   } catch (error) {
     console.error("Error setting variant status:", error);
-    res.status(500).json({ success: false, message: "Failed to update variant status" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to update variant status" });
   }
 }
+
 
 module.exports = {
   listProducts,

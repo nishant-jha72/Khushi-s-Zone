@@ -2,7 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { initializeDatabase } = require("./config/db");
-
+const salesReport =
+  require("./services/dailySalesData").startDailySalesReportJob();
 dotenv.config();
 
 const authRoutes = require("./routes/authRoutes");
@@ -28,7 +29,6 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api", productRoutes);
 app.use("/api", productMediaRoutes);
-
 
 // Global Error Handler
 app.use((err, req, res, next) => {

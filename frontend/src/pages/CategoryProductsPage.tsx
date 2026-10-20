@@ -5,6 +5,7 @@ import ProductCard from "../components/products/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { getProductsApi, type Product } from "../services/api";
 import { SlidersHorizontal, ArrowLeft, Search, X } from "lucide-react";
+import AuthModal from "../components/auth/AuthModal";
 
 interface CategoryProductsPageProps {
   categorySlug: string;
@@ -23,7 +24,30 @@ export default function CategoryProductsPage({
   onOpenAdmin,
   onSelectCategory,
 }: CategoryProductsPageProps) {
-  const { wishlist, addToCart, toggleWishlist, totalCartCount } = useAuth();
+  const { isAuthenticated, wishlist, addToCart, toggleWishlist, totalCartCount } = useAuth();
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      setAuthMode("login");
+      setIsAuthOpen(true);
+      return;
+    }
+    action();
+  };
+
+  const handleToggleWishlist = (productId: string) => {
+    requireAuth(async () => {
+      try {
+        await toggleWishlist(productId);
+      } catch (err) {
+        console.error(err);
+        setAuthMode("login");
+        setIsAuthOpen(true);
+      }
+    });
+  };
 
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,18 +108,21 @@ export default function CategoryProductsPage({
 
   return (
     <div className="min-h-screen bg-[#F7F2EA] text-[#4A2925] font-sans antialiased flex flex-col">
-      <Header
-        wishlistCount={wishlist.length}
-        cartCount={totalCartCount}
-        searchQuery={search}
-        setSearchQuery={setSearch}
-        onOpenCart={() => {}}
-        onOpenWishlist={() => {}}
-        onOpenLogin={() => {}}
-        onOpenAccount={onOpenAccount}
-        onOpenAdmin={onOpenAdmin}
-        onSelectCategory={onSelectCategory}
-      />
+       <Header
+         wishlistCount={wishlist.length}
+         cartCount={totalCartCount}
+         searchQuery={search}
+         setSearchQuery={setSearch}
+         onOpenCart={() => requireAuth(() => {/* cart UI not present on this page */})}
+         onOpenWishlist={() => requireAuth(() => {/* wishlist UI not present on this page */})}
+         onOpenLogin={() => {
+           setAuthMode("login");
+           setIsAuthOpen(true);
+         }}
+         onOpenAccount={onOpenAccount}
+         onOpenAdmin={onOpenAdmin}
+         onSelectCategory={onSelectCategory}
+       />
       {/* Hero Banner for Category */}
       <div className="bg-[#EDE5D5] py-5 px-4 sm:px-8 border-b border-[#D9CEB9]">
         <div className="max-w-5xl mx-auto space-y-2">
@@ -219,19 +246,24 @@ export default function CategoryProductsPage({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredAndSortedProducts.map((prod) => (
-              <ProductCard
-                key={prod.id}
-                product={prod}
-                isWishlisted={wishlist.includes(prod.id)}
-                onToggleWishlist={toggleWishlist}
-                onAddToCart={addToCart}
-                onSelectProduct={onSelectProduct}
-              />
+               <ProductCard
+                 key={prod.id}
+                 product={prod}
+                 isWishlisted={wishlist.includes(prod.id)}
+                 onToggleWishlist={handleToggleWishlist}
+                 onAddToCart={addToCart}
+                 onSelectProduct={onSelectProduct}
+               />
             ))}
           </div>
         )}
       </main>
       <Footer />
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        initialMode={authMode}
+      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
   RotateCcw,
   Check,
 } from "lucide-react";
+import AuthModal from "../components/auth/AuthModal";
 
 interface ProductDetailsPageProps {
   productId: string | number;
@@ -28,7 +29,30 @@ export default function ProductDetailsPage({
   onOpenAdmin,
   onSelectCategory,
 }: ProductDetailsPageProps) {
-  const { wishlist, toggleWishlist, addToCart, totalCartCount } = useAuth();
+  const { isAuthenticated, wishlist, toggleWishlist, addToCart, totalCartCount } = useAuth();
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      setAuthMode("login");
+      setIsAuthOpen(true);
+      return;
+    }
+    action();
+  };
+
+  const handleToggleWishlist = (productId: string) => {
+    requireAuth(async () => {
+      try {
+        await toggleWishlist(productId);
+      } catch (err) {
+        console.error(err);
+        setAuthMode("login");
+        setIsAuthOpen(true);
+      }
+    });
+  };
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -91,9 +115,12 @@ export default function ProductDetailsPage({
           cartCount={totalCartCount}
           searchQuery=""
           setSearchQuery={() => {}}
-          onOpenCart={() => {}}
-          onOpenWishlist={() => {}}
-          onOpenLogin={() => {}}
+          onOpenCart={() => requireAuth(() => {})}
+          onOpenWishlist={() => requireAuth(() => {})}
+          onOpenLogin={() => {
+            setAuthMode("login");
+            setIsAuthOpen(true);
+          }}
           onOpenAccount={onOpenAccount}
           onOpenAdmin={onOpenAdmin}
           onSelectCategory={onSelectCategory}
@@ -115,9 +142,12 @@ export default function ProductDetailsPage({
           cartCount={totalCartCount}
           searchQuery=""
           setSearchQuery={() => {}}
-          onOpenCart={() => {}}
-          onOpenWishlist={() => {}}
-          onOpenLogin={() => {}}
+          onOpenCart={() => requireAuth(() => {})}
+          onOpenWishlist={() => requireAuth(() => {})}
+          onOpenLogin={() => {
+            setAuthMode("login");
+            setIsAuthOpen(true);
+          }}
           onOpenAccount={onOpenAccount}
           onOpenAdmin={onOpenAdmin}
           onSelectCategory={onSelectCategory}
@@ -216,7 +246,7 @@ export default function ProductDetailsPage({
               )}
 
               <button
-                onClick={() => toggleWishlist(product.id.toString())}
+                onClick={() => handleToggleWishlist(product.id.toString())}
                 className="absolute top-4 right-4 p-3 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs text-[#4A2925] shadow-md transition hover:scale-110"
               >
                 <Heart

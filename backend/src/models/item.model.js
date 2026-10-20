@@ -499,6 +499,65 @@ async function deleteVariant(variantId, itemId) {
   return result.rows.length > 0;
 }
 
+// Drop-in replacement for getDailySalesData (model or controller file).
+// Needs `query` from your db config, e.g.: const { query } = require("../config/db");
+
+const TZ = "Asia/Kolkata";
+// created_at is TIMESTAMP (no tz), assumed stored in UTC -> convert to IST day
+const DAY_FILTER = `(o.created_at AT TIME ZONE 'UTC' AT TIME ZONE '${TZ}')::date = $1::date`;
+const NOT_CANCELLED = `LOWER(o.status) <> 'cancelled'`;
+const todayIST = () => new Date().toLocaleDateString("en-CA", { timeZone: TZ }); // YYYY-MM-DD
+
+async function getDailySalesData(date = todayIST()) {
+  const [summary, byPayment, byProduct, orders] = await Promise.all([
+    query(
+      `SELECT
+         COUNT(*) FILTER (WHERE ${NOT_CANCELLED})                         AS orders,
+         COALESCE(SUM(o.total_amount) FILTER (WHERE ${NOT_CANCELLED}), 0) AS revenue,
+         COUNT(*) FILTER (WHERE LOWER(o.status) = 'cancelled')            AS cancelled
+       FROM orders o WHERE ${DAY_FILTER}`,
+      [date],
+    ),
+    query(
+      `SELECT o.payment_method, COUNT(*) AS orders, SUM(o.total_amount) AS revenue
+       FROM orders o WHERE ${DAY_FILTER} AND ${NOT_CANCELLED}
+       GROUP BY o.payment_method ORDER BY revenue DESC`,
+      [date],
+    ),
+    query(
+      `SELECT i.name, SUM(oi.quantity) AS units, SUM(oi.quantity * oi.price) AS revenue
+       FROM order_items oi
+       JOIN orders o ON o.id = oi.order_id
+       JOIN items i  ON i.id = oi.item_id
+       WHERE ${DAY_FILTER} AND ${NOT_CANCELLED}
+       GROUP BY i.id, i.name ORDER BY revenue DESC`,
+      [date],
+    ),
+    query(
+      `SELECT o.order_number, o.total_amount, o.status, o.payment_method, o.payment_status,
+              to_char(o.created_at AT TIME ZONE 'UTC' AT TIME ZONE '${TZ}', 'HH12:MI AM') AS time
+       FROM orders o WHERE ${DAY_FILTER} ORDER BY o.created_at DESC LIMIT 100`,
+      [date],
+    ),
+  ]);
+
+  const s = summary.rows[0];
+  const ordersCount = Number(s.orders);
+  const revenue = Number(s.revenue);
+  return {
+    date,
+    ordersCount,
+    revenue,
+    cancelled: Number(s.cancelled),
+    aov: ordersCount ? revenue / ordersCount : 0,
+    byPayment: byPayment.rows,
+    byProduct: byProduct.rows,
+    orders: orders.rows,
+  };
+}
+
+module.exports = { getDailySalesData };
+
 module.exports = {
   listActiveItems,
   getItemById,
@@ -516,4 +575,6 @@ module.exports = {
   getVariants,
   setVariantActive,
   deleteVariant,
+  // Reports
+  getDailySalesData,
 };
