@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Heart, ShoppingBag, Menu, X, User as UserIcon, LogOut, Package, ChevronDown } from "lucide-react";
+import {
+  Search,
+  Heart,
+  ShoppingBag,
+  Menu,
+  X,
+  User as UserIcon,
+  LogOut,
+  Package,
+  ChevronDown,
+} from "lucide-react";
 import AnnouncementBar from "./AnnouncementBar";
 import CategoryNavigation from "./CategoryNavigation";
 import { useAuth } from "../../context/AuthContext";
@@ -67,10 +77,25 @@ export default function Header({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Prevent background scrolling when mobile menu drawer is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
+
   // Close user dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsUserDropdownOpen(false);
       }
     };
@@ -208,8 +233,12 @@ export default function Header({
                   {isUserDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-52 bg-[#FAF7F2] rounded-2xl shadow-xl border border-[#EDE5D5] py-2 z-50 divide-y divide-[#EDE5D5] animate-in fade-in zoom-in-95 duration-150">
                       <div className="px-4 py-2.5">
-                        <p className="text-xs font-bold text-[#4A2925] truncate">{user.name}</p>
-                        <p className="text-[10px] text-[#8C7A6B] truncate">{user.email}</p>
+                        <p className="text-xs font-bold text-[#4A2925] truncate">
+                          {user.name}
+                        </p>
+                        <p className="text-[10px] text-[#8C7A6B] truncate">
+                          {user.email}
+                        </p>
                       </div>
 
                       <div className="py-1">
@@ -281,12 +310,15 @@ export default function Header({
 
       {/* Mobile Drawer */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
+        <div className="fixed inset-0 z-[9999] flex lg:hidden">
+          {/* Backdrop overlay spanning entire screen */}
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="relative w-full max-w-xs bg-[#F7F2EA] h-full shadow-2xl flex flex-col justify-between z-10 p-6 overflow-y-auto">
+
+          {/* Sliding drawer navigation */}
+          <div className="relative w-full max-w-xs bg-[#F7F2EA] h-full min-h-[100dvh] max-h-[100dvh] shadow-2xl flex flex-col justify-between z-10 p-6 overflow-y-auto">
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-[#EDE5D5]">
                 <div className="flex items-center space-x-2">
@@ -296,14 +328,15 @@ export default function Header({
                 </div>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-1 text-[#4A2925]"
+                  className="p-1 text-[#4A2925] hover:opacity-75 transition-opacity"
+                  aria-label="Close menu"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <div className="py-4">
-                <p className="font-['Great_Vibes',cursive] text-xl text-[#6E493F]">
+              <div className="py-3">
+                <p className="font-['Great_Vibes',cursive] text-lg text-[#6E493F]">
                   "Your Points of Happiness"
                 </p>
               </div>
@@ -312,12 +345,16 @@ export default function Header({
               {isAuthenticated && user && (
                 <div className="p-3 bg-[#EDE5D5] rounded-xl mb-4 border border-[#D9CEB9] flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-[#4A2925] text-white flex items-center justify-center text-xs font-bold">
+                    <div className="w-8 h-8 rounded-full bg-[#4A2925] text-white flex items-center justify-center text-xs font-bold shrink-0">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-[#4A2925]">{user.name}</p>
-                      <p className="text-[10px] text-[#8C7A6B]">{user.email}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-[#4A2925] truncate">
+                        {user.name}
+                      </p>
+                      <p className="text-[10px] text-[#8C7A6B] truncate">
+                        {user.email}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -331,17 +368,26 @@ export default function Header({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Explore styles..."
-                  className="w-full pl-9 pr-3 py-2 bg-[#EDE5D5] text-xs rounded-full border-none focus:outline-none text-[#4A2925]"
+                  className="w-full pl-9 pr-8 py-2 bg-[#EDE5D5] text-xs rounded-full border-none focus:outline-none text-[#4A2925] placeholder-[#8C7A6B]"
                 />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-[#8C7A6B]"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
-              <nav className="mt-4 space-y-3 text-xs font-semibold tracking-wider text-[#4A2925] uppercase">
+              {/* Category Links */}
+              <nav className="mt-4 space-y-2 text-xs font-semibold tracking-wider text-[#4A2925] uppercase">
                 <button
                   onClick={() => {
                     onSelectCategory?.("dresses");
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                 >
                   DRESSES
                 </button>
@@ -350,7 +396,7 @@ export default function Header({
                     onSelectCategory?.("tops");
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                 >
                   TOPS
                 </button>
@@ -359,7 +405,7 @@ export default function Header({
                     onSelectCategory?.("bottoms");
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                 >
                   BOTTOMS
                 </button>
@@ -368,33 +414,60 @@ export default function Header({
                     onSelectCategory?.("accessories");
                     setIsMobileMenuOpen(false);
                   }}
-                  className="block w-full text-left py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                 >
                   ACCESSORIES
                 </button>
 
+                {/* Authenticated Links in Menu */}
                 {isAuthenticated && (
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      onOpenAccount("profile");
-                    }}
-                    className="block w-full text-left py-2 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] font-bold text-[#4A2925]"
-                  >
-                    MY ACCOUNT
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onOpenAccount("profile");
+                      }}
+                      className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                    >
+                      <UserIcon className="w-4 h-4 text-[#8C7A6B]" />
+                      <span>MY ACCOUNT</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onOpenAccount("orders");
+                      }}
+                      className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                    >
+                      <Package className="w-4 h-4 text-[#8C7A6B]" />
+                      <span>PAST ORDERS</span>
+                    </button>
+                    {user?.isAdmin && onOpenAdmin && (
+                      <button
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          onOpenAdmin();
+                        }}
+                        className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 text-pink-700 font-bold"
+                      >
+                        <Package className="w-4 h-4 text-pink-700" />
+                        <span>ADMIN PORTAL ⚙️</span>
+                      </button>
+                    )}
+                  </>
                 )}
               </nav>
             </div>
 
-            <div className="pt-6 border-t border-[#EDE5D5] space-y-3">
+            {/* Bottom Footer Actions */}
+            <div className="pt-6 mt-6 border-t border-[#EDE5D5] space-y-3 shrink-0">
               {isAuthenticated ? (
                 <button
                   onClick={async () => {
                     setIsMobileMenuOpen(false);
                     await logout();
                   }}
-                  className="w-full py-2.5 bg-red-800 text-white text-xs font-semibold tracking-wider uppercase rounded-full flex items-center justify-center space-x-2"
+                  className="w-full py-2.5 bg-red-800 text-white text-xs font-semibold tracking-wider uppercase rounded-full flex items-center justify-center space-x-2 shadow-sm"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>LOGOUT</span>
@@ -405,7 +478,7 @@ export default function Header({
                     setIsMobileMenuOpen(false);
                     onOpenLogin();
                   }}
-                  className="w-full py-2.5 bg-[#4A2925] text-[#F7F2EA] text-xs font-semibold tracking-wider uppercase rounded-full"
+                  className="w-full py-2.5 bg-[#4A2925] text-[#F7F2EA] text-xs font-semibold tracking-wider uppercase rounded-full shadow-sm"
                 >
                   LOGIN / SIGNUP
                 </button>
