@@ -12,7 +12,6 @@ import {
   RotateCcw,
   Check,
 } from "lucide-react";
-import AuthModal from "../components/auth/AuthModal";
 
 interface ProductDetailsPageProps {
   productId: string | number;
@@ -29,14 +28,16 @@ export default function ProductDetailsPage({
   onOpenAdmin,
   onSelectCategory,
 }: ProductDetailsPageProps) {
-  const { isAuthenticated, wishlist, toggleWishlist, addToCart, totalCartCount } = useAuth();
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-
+  const {
+    isAuthenticated,
+    wishlist,
+    toggleWishlist,
+    addToCart,
+    totalCartCount,
+  } = useAuth();
   const requireAuth = (action: () => void) => {
     if (!isAuthenticated) {
-      setAuthMode("login");
-      setIsAuthOpen(true);
+      onOpenAccount("login");
       return;
     }
     action();
@@ -48,8 +49,7 @@ export default function ProductDetailsPage({
         await toggleWishlist(productId);
       } catch (err) {
         console.error(err);
-        setAuthMode("login");
-        setIsAuthOpen(true);
+        onOpenAccount("login");
       }
     });
   };
@@ -90,7 +90,9 @@ export default function ProductDetailsPage({
     fetchDetail();
   }, [productId]);
 
-  const isWishlisted = product ? wishlist.includes(product.id?.toString()) : false;
+  const isWishlisted = product
+    ? wishlist.includes(product.id?.toString())
+    : false;
 
   const handleAddToCart = () => {
     if (!product) return;
@@ -99,7 +101,9 @@ export default function ProductDetailsPage({
       name: product.name,
       category: product.category?.slug || "dresses",
       price: Number(product.price),
-      originalPrice: product.original_price ? Number(product.original_price) : undefined,
+      originalPrice: product.original_price
+        ? Number(product.original_price)
+        : undefined,
       image: selectedImage || product.image_url || "/images/placeholder.png",
     };
     addToCart(formattedProd, 1, selectedSize);
@@ -117,17 +121,16 @@ export default function ProductDetailsPage({
           setSearchQuery={() => {}}
           onOpenCart={() => requireAuth(() => {})}
           onOpenWishlist={() => requireAuth(() => {})}
-          onOpenLogin={() => {
-            setAuthMode("login");
-            setIsAuthOpen(true);
-          }}
+          onOpenLogin={() => onOpenAccount("login")}
           onOpenAccount={onOpenAccount}
           onOpenAdmin={onOpenAdmin}
           onSelectCategory={onSelectCategory}
         />
         <div className="py-32 text-center space-y-4">
           <div className="w-10 h-10 border-3 border-[#4A2925] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-[#8C7A6B] font-semibold">Fetching product details from database...</p>
+          <p className="text-xs text-[#8C7A6B] font-semibold">
+            Fetching product details from database...
+          </p>
         </div>
         <Footer />
       </div>
@@ -144,17 +147,18 @@ export default function ProductDetailsPage({
           setSearchQuery={() => {}}
           onOpenCart={() => requireAuth(() => {})}
           onOpenWishlist={() => requireAuth(() => {})}
-          onOpenLogin={() => {
-            setAuthMode("login");
-            setIsAuthOpen(true);
-          }}
+          onOpenLogin={() => onOpenAccount("login")}
           onOpenAccount={onOpenAccount}
           onOpenAdmin={onOpenAdmin}
           onSelectCategory={onSelectCategory}
         />
         <div className="py-24 text-center max-w-md mx-auto space-y-4">
-          <h2 className="text-xl font-serif font-bold text-[#4A2925]">Product Not Found</h2>
-          <p className="text-xs text-[#8C7A6B]">The item you're looking for might be out of stock or moved.</p>
+          <h2 className="text-xl font-serif font-bold text-[#4A2925]">
+            Product Not Found
+          </h2>
+          <p className="text-xs text-[#8C7A6B]">
+            The item you're looking for might be out of stock or moved.
+          </p>
           <button
             onClick={onBack}
             className="px-6 py-2 bg-[#4A2925] text-white text-xs font-semibold rounded-full"
@@ -169,15 +173,18 @@ export default function ProductDetailsPage({
 
   const galleryImages =
     product.images && product.images.length > 0
-      ? product.images.map((img: any) => (typeof img === "string" ? img : img.url))
+      ? product.images.map((img: any) =>
+          typeof img === "string" ? img : img.url,
+        )
       : [product.image_url || product.image];
 
   const discountPercent =
-    product.original_price && Number(product.original_price) > Number(product.price)
+    product.original_price &&
+    Number(product.original_price) > Number(product.price)
       ? Math.round(
           ((Number(product.original_price) - Number(product.price)) /
             Number(product.original_price)) *
-            100
+            100,
         )
       : null;
 
@@ -188,9 +195,9 @@ export default function ProductDetailsPage({
         cartCount={totalCartCount}
         searchQuery=""
         setSearchQuery={() => {}}
-        onOpenCart={() => {}}
-        onOpenWishlist={() => {}}
-        onOpenLogin={() => {}}
+        onOpenCart={() => requireAuth(() => {})}
+        onOpenWishlist={() => requireAuth(() => {})}
+        onOpenLogin={() => onOpenAccount("login")}
         onOpenAccount={onOpenAccount}
         onOpenAdmin={onOpenAdmin}
         onSelectCategory={onSelectCategory}
@@ -225,7 +232,11 @@ export default function ProductDetailsPage({
                         : "border-[#EDE5D5] opacity-70 hover:opacity-100"
                     }`}
                   >
-                    <img src={imgUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                    <img
+                      src={imgUrl}
+                      alt="Thumbnail"
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -251,7 +262,9 @@ export default function ProductDetailsPage({
               >
                 <Heart
                   className={`w-5 h-5 ${
-                    isWishlisted ? "fill-[#4A2925] text-[#4A2925]" : "text-[#4A2925]"
+                    isWishlisted
+                      ? "fill-[#4A2925] text-[#4A2925]"
+                      : "text-[#4A2925]"
                   }`}
                 />
               </button>
@@ -269,7 +282,9 @@ export default function ProductDetailsPage({
                 {product.name}
               </h1>
               {product.sku && (
-                <p className="text-[11px] text-[#8C7A6B] mt-1 font-mono">SKU: {product.sku}</p>
+                <p className="text-[11px] text-[#8C7A6B] mt-1 font-mono">
+                  SKU: {product.sku}
+                </p>
               )}
             </div>
 
@@ -278,25 +293,29 @@ export default function ProductDetailsPage({
               <span className="text-2xl font-bold text-[#4A2925]">
                 ₹ {Number(product.price).toLocaleString("en-IN")}
               </span>
-              {product.original_price && Number(product.original_price) > Number(product.price) && (
-                <>
-                  <span className="text-base text-[#8C7A6B] line-through">
-                    ₹ {Number(product.original_price).toLocaleString("en-IN")}
-                  </span>
-                  {discountPercent && (
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                      {discountPercent}% OFF
+              {product.original_price &&
+                Number(product.original_price) > Number(product.price) && (
+                  <>
+                    <span className="text-base text-[#8C7A6B] line-through">
+                      ₹ {Number(product.original_price).toLocaleString("en-IN")}
                     </span>
-                  )}
-                </>
-              )}
+                    {discountPercent && (
+                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
+                        {discountPercent}% OFF
+                      </span>
+                    )}
+                  </>
+                )}
             </div>
 
             {/* Color Selector */}
             {product.colors && product.colors.length > 0 && (
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-[#4A2925] mb-2">
-                  Color: <span className="text-[#8C7A6B] normal-case">{selectedColor}</span>
+                  Color:{" "}
+                  <span className="text-[#8C7A6B] normal-case">
+                    {selectedColor}
+                  </span>
                 </label>
                 <div className="flex flex-wrap gap-3">
                   {product.colors.map((c: any, i: number) => (
@@ -391,19 +410,23 @@ export default function ProductDetailsPage({
 
             {/* Description & Specs */}
             <div className="space-y-3 pt-4 border-t border-[#EDE5D5]">
-              <h3 className="font-serif text-sm font-bold text-[#4A2925]">Product Details</h3>
+              <h3 className="font-serif text-sm font-bold text-[#4A2925]">
+                Product Details
+              </h3>
               <p className="text-xs text-[#6E493F] leading-relaxed whitespace-pre-line">
                 {product.description}
               </p>
 
               {product.material && (
                 <div className="text-xs text-[#4A2925]">
-                  <span className="font-bold">Fabric / Material:</span> {product.material}
+                  <span className="font-bold">Fabric / Material:</span>{" "}
+                  {product.material}
                 </div>
               )}
               {product.care_instructions && (
                 <div className="text-xs text-[#4A2925]">
-                  <span className="font-bold">Care:</span> {product.care_instructions}
+                  <span className="font-bold">Care:</span>{" "}
+                  {product.care_instructions}
                 </div>
               )}
             </div>
