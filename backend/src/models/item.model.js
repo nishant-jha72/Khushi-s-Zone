@@ -127,12 +127,6 @@ async function listActiveItems({
     query(dataSql, [...filterParams, limit, offset]),
   ]);
 
-  console.log(
-    `Product listing queries completed in ${(performance.now() - start).toFixed(
-      2,
-    )} ms`,
-  );
-
   const total = parseInt(countRes.rows[0].total, 10);
 
   return {

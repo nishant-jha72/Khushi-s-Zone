@@ -16,6 +16,7 @@ export default function CategoryNavigation({
   onCategorySelect,
 }: CategoryNavigationProps) {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -28,13 +29,15 @@ export default function CategoryNavigation({
         console.error("Failed to load categories for nav:", err);
       }
     };
+
     fetchCats();
   }, []);
 
   const handleCategoryClick = (slug: string) => {
-    if (onCategorySelect) {
-      onCategorySelect(slug);
-    }
+    console.log('CategoryNavigation handleCategoryClick called with slug:', slug);
+    console.log('CategoryNavigation button clicked:', slug);
+    setSelectedCategory(slug);
+    onCategorySelect?.(slug);
   };
 
   return (
@@ -46,7 +49,12 @@ export default function CategoryNavigation({
             <button
               key={cat.id}
               onClick={() => handleCategoryClick(cat.slug)}
-              className="hover:text-[#8C7A6B] py-1 transition-colors duration-200"
+              className={`py-1 transition-colors duration-200 ${
+                selectedCategory === cat.slug
+                  ? "text-[#8C7A6B] font-bold"
+                  : "text-[#4A2925] hover:text-[#8C7A6B]"
+              }`}
+              aria-pressed={selectedCategory === cat.slug}
             >
               {cat.name}
             </button>
@@ -62,9 +70,11 @@ export default function CategoryNavigation({
             <Truck className="w-3.5 h-3.5" />
             <span>TRACK ORDER</span>
           </a>
+
           <a href="#contact" className="hover:text-[#4A2925] transition-colors">
             CONTACT
           </a>
+
           <a href="#account" className="hover:text-[#4A2925] transition-colors">
             MY ACCOUNT
           </a>
