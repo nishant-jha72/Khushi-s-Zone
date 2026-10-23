@@ -11,7 +11,11 @@ import {
   Star,
   Truck,
 } from "lucide-react";
-import type { DeliveryCheckResult, Product } from "../types";
+import type {
+  DeliveryCheckResult,
+  Product,
+  ProductColor,
+} from "../../pages/type";
 import SizeGuideModal from "./SizeGuideModal";
 
 interface ProductInfoPanelProps {
@@ -73,14 +77,18 @@ export default function ProductInfoPanel({
 
   const handlePinCheck = async () => {
     if (!/^[1-9][0-9]{5}$/.test(pincode.trim())) {
-      setPinResult({ available: false, message: "Please enter a valid 6-digit pincode." });
+      setPinResult({
+        available: false,
+        message: "Please enter a valid 6-digit pincode.",
+      });
       return;
     }
     if (!checkDelivery) {
       // Integration point — no fake verification.
       setPinResult({
         available: false,
-        message: "Delivery check will be available soon. You can still place your order.",
+        message:
+          "Delivery check will be available soon. You can still place your order.",
       });
       return;
     }
@@ -90,7 +98,10 @@ export default function ProductInfoPanel({
       const res = await checkDelivery(pincode.trim());
       setPinResult(res);
     } catch {
-      setPinResult({ available: false, message: "Could not check delivery right now. Please try again." });
+      setPinResult({
+        available: false,
+        message: "Could not check delivery right now. Please try again.",
+      });
     } finally {
       setCheckingPin(false);
     }
@@ -113,7 +124,10 @@ export default function ProductInfoPanel({
       {/* 3. Rating — only real data */}
       {product.rating != null && (
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-0.5" aria-label={`Rated ${product.rating} out of 5`}>
+          <span
+            className="flex items-center gap-0.5"
+            aria-label={`Rated ${product.rating} out of 5`}
+          >
             {Array.from({ length: 5 }).map((_, i) => (
               <Star
                 key={i}
@@ -172,7 +186,7 @@ export default function ProductInfoPanel({
             Colour
           </span>
           <div className="flex flex-wrap gap-3">
-            {product.colors.map((c, i) => (
+            {product.colors.map((c: ProductColor, i: number) => (
               <span
                 key={c.color_name + i}
                 title={c.color_name}
@@ -199,8 +213,12 @@ export default function ProductInfoPanel({
               Size Guide
             </button>
           </div>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Select size">
-            {product.sizes.map((sz) => (
+          <div
+            className="flex flex-wrap gap-2"
+            role="radiogroup"
+            aria-label="Select size"
+          >
+            {product.sizes.map((sz: string) => (
               <button
                 key={sz}
                 role="radio"
@@ -221,7 +239,10 @@ export default function ProductInfoPanel({
             ))}
           </div>
           {sizeError && (
-            <p role="alert" className="text-[11px] font-semibold text-red-700 mt-2">
+            <p
+              role="alert"
+              className="text-[11px] font-semibold text-red-700 mt-2"
+            >
               {sizeError}
             </p>
           )}
@@ -235,11 +256,11 @@ export default function ProductInfoPanel({
         </p>
       ) : (
         <div className="flex items-center gap-2 text-xs">
-          <span className={`w-2 h-2 rounded-full ${lowStock ? "bg-amber-500" : "bg-emerald-600"}`} />
+          <span
+            className={`w-2 h-2 rounded-full ${lowStock ? "bg-amber-500" : "bg-emerald-600"}`}
+          />
           <span className="font-semibold text-[#4A2925]">
-            {lowStock
-              ? `Low stock — only ${stock} left`
-              : "In stock"}
+            {lowStock ? `Low stock — only ${stock} left` : "In stock"}
           </span>
           {product.dispatch_days != null && (
             <span className="text-[#8C7A6B]">
@@ -285,7 +306,9 @@ export default function ProductInfoPanel({
           aria-pressed={isWishlisted}
           className="p-3.5 rounded-full border border-[#D9CEB9] bg-white text-[#4A2925] hover:border-[#4A2925] transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4A2925]"
         >
-          <Heart className={`w-5 h-5 ${isWishlisted ? "fill-[#4A2925]" : ""}`} />
+          <Heart
+            className={`w-5 h-5 ${isWishlisted ? "fill-[#4A2925]" : ""}`}
+          />
         </button>
       </div>
 

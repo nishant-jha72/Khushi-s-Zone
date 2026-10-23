@@ -12,8 +12,9 @@ import {
   getWishlistApi,
   toggleWishlistApi,
   updateProfileApi,
+  placeOrderApi,
   getAccessToken,
-  type Product
+  type Product,
 } from "../services/api";
 
 export interface UserProfile {
@@ -47,20 +48,42 @@ interface AuthContextType {
   totalCartCount: number;
   totalCartPrice: number;
   login: (credentials: { email: string; password: string }) => Promise<any>;
-  register: (data: { name: string; email: string; password: string }) => Promise<any>;
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+  }) => Promise<any>;
   verifyEmail: (token: string) => Promise<any>;
   googleLogin: (credential: string) => Promise<any>;
   logout: () => Promise<void>;
   updateProfile: (data: any) => Promise<any>;
-  addToCart: (product: Product, quantity?: number, size?: string) => Promise<void>;
+  addToCart: (
+    product: Product,
+    quantity?: number,
+    size?: string,
+  ) => Promise<void>;
   removeFromCart: (cartItemId: number) => Promise<void>;
   toggleWishlist: (productId: string | number) => Promise<void>;
   fetchCartAndWishlist: () => Promise<void>;
+  placeOrder: (orderData: {
+    items: Array<{
+      itemId?: string | number;
+      id?: string | number;
+      name?: string;
+      price: number;
+      quantity: number;
+      size?: string;
+    }>;
+    shippingAddress: string;
+    paymentMethod: string;
+  }) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [cartItems, setCartItems] = useState<CartEntry[]>([]);
@@ -72,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const [cartRes, wishlistRes] = await Promise.all([
         getCartApi().catch(() => null),
-        getWishlistApi().catch(() => null)
+        getWishlistApi().catch(() => null),
       ]);
 
       if (cartRes && cartRes.success) {
@@ -115,7 +138,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return res;
   };
 
-  const register = async (data: { name: string; email: string; password: string }) => {
+  const register = async (data: {
+    name: string;
+    email: string;
+    password: string;
+  }) => {
     return await registerApi(data);
   };
 
@@ -180,8 +207,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fetchCartAndWishlist();
   };
 
-  const totalCartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
-  const totalCartPrice = cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
+  const placeOrder = async (orderData: {
+    items: Array<{
+      itemId?: string | number;
+      id?: string | number;
+      name?: string;
+      price: number;
+      quantity: number;
+      size?: string;
+    }>;
+    shippingAddress: string;
+    paymentMethod: string;
+  }) => {
+    if (!user) {
+      throw new Error("Please sign in to place an order.");
+    }
+    const res = await placeOrderApi(orderData);
+    await fetchCartAndWishlist();
+    return res;
+  };
+
+  const totalCartCount = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
+  const totalCartPrice = cartItems.reduce(
+    (total, item) => total + item.product.price * item.quantity,
+    0,
+  );
 
   return (
     <AuthContext.Provider
@@ -203,7 +256,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addToCart,
         removeFromCart,
         toggleWishlist,
-        fetchCartAndWishlist
+        fetchCartAndWishlist,
+        placeOrder,
       }}
     >
       {children}

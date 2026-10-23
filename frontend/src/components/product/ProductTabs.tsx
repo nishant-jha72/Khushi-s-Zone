@@ -1,8 +1,13 @@
 import { useState } from "react";
 import { Star } from "lucide-react";
-import type { Product } from "../types";
+import type { Product, ProductReview } from "../../pages/type";
 
-const TABS = ["Product Details", "Size & Fit", "Shipping & Returns", "Reviews"] as const;
+const TABS = [
+  "Product Details",
+  "Size & Fit",
+  "Shipping & Returns",
+  "Reviews",
+] as const;
 type Tab = (typeof TABS)[number];
 
 interface ProductTabsProps {
@@ -12,13 +17,16 @@ interface ProductTabsProps {
 export default function ProductTabs({ product }: ProductTabsProps) {
   const [active, setActive] = useState<Tab>("Product Details");
 
-  const hasReviews =
-    product.reviews && product.reviews.length > 0;
+  const hasReviews = product.reviews && product.reviews.length > 0;
 
   return (
     <section className="bg-[#FDFBF7] rounded-2xl border border-[#EDE5D5] shadow-sm overflow-hidden">
       {/* Tab bar */}
-      <div role="tablist" aria-label="Product information" className="flex overflow-x-auto border-b border-[#EDE5D5] px-4 sm:px-8">
+      <div
+        role="tablist"
+        aria-label="Product information"
+        className="flex overflow-x-auto border-b border-[#EDE5D5] px-4 sm:px-8"
+      >
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -56,10 +64,19 @@ export default function ProductTabs({ product }: ProductTabsProps) {
             <dl className="space-y-4">
               {[
                 { label: "Fabric & Material", value: product.material },
-                { label: "Fit & Silhouette", value: product.fit || product.silhouette },
+                {
+                  label: "Fit & Silhouette",
+                  value: product.fit || product.silhouette,
+                },
                 { label: "Set Includes", value: product.set_includes },
-                { label: "Care Instructions", value: product.care_instructions },
-                { label: "Model Measurements", value: product.model_measurements },
+                {
+                  label: "Care Instructions",
+                  value: product.care_instructions,
+                },
+                {
+                  label: "Model Measurements",
+                  value: product.model_measurements,
+                },
                 { label: "SKU", value: product.sku },
               ]
                 .filter((row) => row.value)
@@ -82,8 +99,8 @@ export default function ProductTabs({ product }: ProductTabsProps) {
             <p className="text-xs text-[#6E574C] leading-relaxed">
               {product.fit || product.silhouette
                 ? `This piece has a ${(product.fit || product.silhouette)!.toLowerCase()} silhouette.`
-                : "Refer to the Size Guide on this page for body measurements."}
-              {" "}When between sizes, we recommend sizing up for a relaxed drape.
+                : "Refer to the Size Guide on this page for body measurements."}{" "}
+              When between sizes, we recommend sizing up for a relaxed drape.
             </p>
             {product.model_measurements && (
               <p className="text-xs text-[#8C7A6B]">
@@ -98,8 +115,7 @@ export default function ProductTabs({ product }: ProductTabsProps) {
             <p>
               {product.dispatch_days != null
                 ? `Orders are usually dispatched within ${product.dispatch_days} business day${product.dispatch_days > 1 ? "s" : ""}.`
-                : "Orders are dispatched within 2–4 business days."}
-              {" "}
+                : "Orders are dispatched within 2–4 business days."}{" "}
               Free shipping on orders above ₹999.
             </p>
             <p>
@@ -108,7 +124,8 @@ export default function ProductTabs({ product }: ProductTabsProps) {
               eligible for return.
             </p>
             <p className="text-[#8C7A6B]">
-              {product.shipping_info || "For exchange or return help, reach out via our Contact page."}
+              {product.shipping_info ||
+                "For exchange or return help, reach out via our Contact page."}
             </p>
           </div>
         )}
@@ -120,10 +137,13 @@ export default function ProductTabs({ product }: ProductTabsProps) {
                 No reviews yet — be the first to share your experience.
               </p>
             ) : (
-              product.reviews!.map((r) => (
+              product.reviews!.map((r: ProductReview) => (
                 <article key={r.id} className="border-b border-[#EDE5D5] pb-5">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="flex gap-0.5" aria-label={`${r.rating} out of 5 stars`}>
+                    <span
+                      className="flex gap-0.5"
+                      aria-label={`${r.rating} out of 5 stars`}
+                    >
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}

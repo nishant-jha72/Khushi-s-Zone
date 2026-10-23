@@ -9,7 +9,8 @@ import type {
 import {
   getCurrentPosition,
   getGeolocationErrorMessage,
-  reverseGeocodeCoordinates
+  reverseGeocodeCoordinates,
+  lookupPincode,
 } from "../../services/addressApi";
 
 interface AddressFormProps {
@@ -349,6 +350,20 @@ export default function AddressForm({ editAddress, onSave, onCancel, isSaving = 
               required
               value={postalCode}
               onChange={(e) => setPostalCode(e.target.value)}
+              onBlur={async () => {
+                const pin = postalCode.trim();
+                if (!/^\d{6}$/.test(pin)) return;
+                try {
+                  const res = await lookupPincode(pin);
+                  if (!res.success || !res.location) return;
+                  if (!city) setCity(res.location.city);
+                  if (!district) setDistrict(res.location.district);
+                  if (!state) setState(res.location.state);
+                  if (!country) setCountry(res.location.country || "India");
+                } catch {
+                  // PIN lookup is optional; user can still enter city/state
+                }
+              }}
               placeholder="110016"
               className={inputClass}
             />
@@ -393,7 +408,7 @@ export default function AddressForm({ editAddress, onSave, onCancel, isSaving = 
         {/* Set as default */}
         <label className="flex items-center gap-3 cursor-pointer select-none group">
           <div
-            onClick={() => setIsDefault((v) => !v)}
+            onClick={() => setIsDefault((v: boolean) => !v)}
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
               isDefault ? "bg-[#4A2925] border-[#4A2925]" : "bg-white border-[#D9CEB9] group-hover:border-[#4A2925]"
             }`}

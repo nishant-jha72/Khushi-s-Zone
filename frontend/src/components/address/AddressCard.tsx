@@ -1,5 +1,6 @@
 import { MapPin, Phone, Home, Briefcase, MoreHorizontal, Star, Pencil, Trash2, CheckCircle, Loader2 } from "lucide-react";
-import type { UserAddress } from "../../services/addressApi";
+import type { LucideIcon } from "lucide-react";
+import type { AddressType, UserAddress } from "../../services/addressApi";
 
 interface AddressCardProps {
   address: UserAddress;
@@ -14,8 +15,8 @@ interface AddressCardProps {
   onSelect?: (address: UserAddress) => void;
 }
 
-const TYPE_ICON = {
-  Home: Home,
+const TYPE_ICON: Record<AddressType, LucideIcon> = {
+  Home,
   Work: Briefcase,
   Other: MoreHorizontal,
 };
@@ -31,7 +32,7 @@ export default function AddressCard({
   isSelected = false,
   onSelect,
 }: AddressCardProps) {
-  const TypeIcon = TYPE_ICON[address.addressType] || MapPin;
+  const TypeIcon = TYPE_ICON[address.addressType] ?? MapPin;
   const busy = isSettingDefault || isDeleting;
 
   return (
@@ -69,29 +70,30 @@ export default function AddressCard({
           )}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={() => onEdit(address)}
-            disabled={busy}
-            className="p-1.5 rounded-full text-[#8C7A6B] hover:text-[#4A2925] hover:bg-[#EDE5D5] transition-all disabled:opacity-40"
-            title="Edit address"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={() => onDelete(address)}
-            disabled={busy}
-            className="p-1.5 rounded-full text-[#8C7A6B] hover:text-red-700 hover:bg-red-50 transition-all disabled:opacity-40"
-            title="Delete address"
-          >
-            {isDeleting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Trash2 className="w-3.5 h-3.5" />
-            )}
-          </button>
-        </div>
+        {!selectable && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => onEdit(address)}
+              disabled={busy}
+              className="p-1.5 rounded-full text-[#8C7A6B] hover:text-[#4A2925] hover:bg-[#EDE5D5] transition-all disabled:opacity-40"
+              title="Edit address"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => onDelete(address)}
+              disabled={busy}
+              className="p-1.5 rounded-full text-[#8C7A6B] hover:text-red-700 hover:bg-red-50 transition-all disabled:opacity-40"
+              title="Delete address"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Address details */}

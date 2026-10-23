@@ -7,6 +7,7 @@ import CategoryGrid from "../components/home/CategoryGrid";
 import FeaturedProducts from "../components/home/FeaturedProducts";
 import BrandStory from "../components/home/BrandStory";
 import AuthModal from "../components/auth/AuthModal";
+import CheckoutModal from "../components/checkout/CheckoutModal";
 import { useAuth } from "../context/AuthContext";
 import { getProductsApi, type Product } from "../services/api";
 import { X, ShoppingBag, Heart } from "lucide-react";
@@ -44,6 +45,7 @@ export default function HomePage({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
@@ -51,7 +53,10 @@ export default function HomePage({
     const loadProducts = async () => {
       setProductsLoading(true);
       try {
-        const res = await getProductsApi(selectedCategory || undefined, searchQuery || undefined);
+        const res = await getProductsApi(
+          selectedCategory || undefined,
+          searchQuery || undefined,
+        );
         if (res.success && res.products) {
           setProducts(res.products);
         }
@@ -80,7 +85,9 @@ export default function HomePage({
         }
       } catch (err: any) {
         if (!cancelled) {
-          setVerifyNotice(err.message || "Verification failed. Please try again.");
+          setVerifyNotice(
+            err.message || "Verification failed. Please try again.",
+          );
           setIsAuthOpen(true);
           setAuthMode("login");
         }
@@ -158,12 +165,8 @@ export default function HomePage({
         cartCount={totalCartCount}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
-        onOpenCart={() =>
-          requireAuth(() => setIsCartOpen(true))
-        }
-        onOpenWishlist={() =>
-          requireAuth(() => setIsWishlistOpen(true))
-        }
+        onOpenCart={() => requireAuth(() => setIsCartOpen(true))}
+        onOpenWishlist={() => requireAuth(() => setIsWishlistOpen(true))}
         onOpenLogin={() => {
           setAuthMode("login");
           setIsAuthOpen(true);
@@ -189,7 +192,8 @@ export default function HomePage({
         {(selectedCategory || searchQuery) && (
           <div className="bg-[#EDE5D5] py-3 px-6 text-center text-xs font-semibold tracking-wider text-[#4A2925] flex items-center justify-center space-x-3 border-b border-[#D9CEB9]">
             <span>
-              FILTERING BY: {selectedCategory ? selectedCategory.toUpperCase() : ""}{" "}
+              FILTERING BY:{" "}
+              {selectedCategory ? selectedCategory.toUpperCase() : ""}{" "}
               {searchQuery ? `"${searchQuery}"` : ""}
             </span>
             <button
@@ -225,7 +229,9 @@ export default function HomePage({
 
         <div id="featured-products">
           {productsLoading ? (
-            <div className="py-20 text-center text-xs text-[#8C7A6B]">Loading collection...</div>
+            <div className="py-20 text-center text-xs text-[#8C7A6B]">
+              Loading collection...
+            </div>
           ) : (
             <FeaturedProducts
               products={filteredProducts}
@@ -268,8 +274,12 @@ export default function HomePage({
               {cartItems.length === 0 ? (
                 <div className="text-center py-16 text-[#8C7A6B] space-y-3">
                   <ShoppingBag className="w-12 h-12 mx-auto opacity-30 text-[#4A2925]" />
-                  <p className="text-sm font-medium">Your shopping bag is empty.</p>
-                  <p className="text-xs">Explore our collections and add your favorite pieces!</p>
+                  <p className="text-sm font-medium">
+                    Your shopping bag is empty.
+                  </p>
+                  <p className="text-xs">
+                    Explore our collections and add your favorite pieces!
+                  </p>
                 </div>
               ) : (
                 cartItems.map((item) => (
@@ -287,7 +297,10 @@ export default function HomePage({
                         Qty: {item.quantity} · Size: {item.size}
                       </p>
                       <p className="text-xs font-bold text-[#4A2925]">
-                        ₹ {(item.product.price * item.quantity).toLocaleString("en-IN")}
+                        ₹{" "}
+                        {(item.product.price * item.quantity).toLocaleString(
+                          "en-IN",
+                        )}
                       </p>
                     </div>
                     <button
@@ -313,11 +326,11 @@ export default function HomePage({
                 <button
                   onClick={() => {
                     setIsCartOpen(false);
-                    onOpenAccount("orders");
+                    setIsCheckoutOpen(true);
                   }}
                   className="w-full py-3 bg-[#4A2925] text-white text-xs font-semibold tracking-widest uppercase rounded-full hover:bg-[#3D211E] transition-colors"
                 >
-                  VIEW ACCOUNT / ORDERS
+                  Checkout
                 </button>
               </div>
             )}
@@ -352,11 +365,16 @@ export default function HomePage({
                 <div className="text-center py-16 text-[#8C7A6B] space-y-3">
                   <Heart className="w-12 h-12 mx-auto opacity-30 text-[#4A2925]" />
                   <p className="text-sm font-medium">Your wishlist is empty.</p>
-                  <p className="text-xs">Click the heart icon on any product to save it here!</p>
+                  <p className="text-xs">
+                    Click the heart icon on any product to save it here!
+                  </p>
                 </div>
               ) : (
                 wishlistedProducts.map((product) => (
-                  <div key={product.id} className="py-4 flex space-x-4 items-center">
+                  <div
+                    key={product.id}
+                    className="py-4 flex space-x-4 items-center"
+                  >
                     <img
                       src={product.image}
                       alt={product.name}
@@ -400,6 +418,15 @@ export default function HomePage({
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         initialMode={authMode}
+      />
+
+      <CheckoutModal
+        isOpen={isCheckoutOpen}
+        onClose={() => setIsCheckoutOpen(false)}
+        onOrderPlaced={() => {
+          setIsCheckoutOpen(false);
+          onOpenAccount("orders");
+        }}
       />
     </div>
   );

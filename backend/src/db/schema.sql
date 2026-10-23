@@ -137,3 +137,33 @@ CREATE INDEX IF NOT EXISTS idx_item_variants_color_id    ON item_variants(color_
 CREATE INDEX IF NOT EXISTS idx_product_media_product_id  ON product_media(product_id);
 CREATE INDEX IF NOT EXISTS idx_items_category_id         ON items(category_id);
 CREATE INDEX IF NOT EXISTS idx_items_is_active           ON items(is_active);
+
+-- One user can store many delivery addresses
+CREATE TABLE IF NOT EXISTS user_address (
+  id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  full_name VARCHAR(255) NOT NULL,
+  phone_number VARCHAR(50) NOT NULL,
+  alternate_phone_number VARCHAR(50) DEFAULT '',
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT DEFAULT '',
+  landmark VARCHAR(255) DEFAULT '',
+  city VARCHAR(100) NOT NULL,
+  district VARCHAR(100) DEFAULT '',
+  state VARCHAR(100) NOT NULL,
+  postal_code VARCHAR(20) NOT NULL,
+  country VARCHAR(100) NOT NULL DEFAULT 'India',
+  latitude NUMERIC(10,7) DEFAULT NULL,
+  longitude NUMERIC(10,7) DEFAULT NULL,
+  formatted_address TEXT DEFAULT '',
+  address_type VARCHAR(20) NOT NULL DEFAULT 'Home'
+    CHECK (address_type IN ('Home', 'Work', 'Other')),
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_address_user_id ON user_address(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_user_address_one_default
+  ON user_address (user_id)
+  WHERE is_default = TRUE;

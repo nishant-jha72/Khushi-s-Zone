@@ -8,6 +8,7 @@ import {
   User as UserIcon,
   LogOut,
   Package,
+  MapPin,
   ChevronDown,
 } from "lucide-react";
 import AnnouncementBar from "./AnnouncementBar";
@@ -255,6 +256,16 @@ export default function Header({
                         <button
                           onClick={() => {
                             setIsUserDropdownOpen(false);
+                            onOpenAccount("addresses");
+                          }}
+                          className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
+                        >
+                          <MapPin className="w-4 h-4 text-[#8C7A6B]" />
+                          <span>Addresses</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
                             onOpenAccount("orders");
                           }}
                           className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
@@ -431,6 +442,16 @@ export default function Header({
                     >
                       <UserIcon className="w-4 h-4 text-[#8C7A6B]" />
                       <span>MY ACCOUNT</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        onOpenAccount("addresses");
+                      }}
+                      className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                    >
+                      <MapPin className="w-4 h-4 text-[#8C7A6B]" />
+                      <span>ADDRESSES</span>
                     </button>
                     <button
                       onClick={() => {

@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 export interface Product {
   id: string;
@@ -34,10 +35,15 @@ export const setTokens = (access: string | null, refresh: string | null) => {
   }
 };
 
-export const getAccessToken = () => accessToken || localStorage.getItem("kz_access_token");
-export const getRefreshToken = () => refreshToken || localStorage.getItem("kz_refresh_token");
+export const getAccessToken = () =>
+  accessToken || localStorage.getItem("kz_access_token");
+export const getRefreshToken = () =>
+  refreshToken || localStorage.getItem("kz_refresh_token");
 
-async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<any> {
+export async function apiFetch(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<any> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -68,12 +74,17 @@ async function apiFetch(endpoint: string, options: RequestInit = {}): Promise<an
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data.message || `Request failed with status ${response.status}`);
+    throw new Error(
+      data.message || `Request failed with status ${response.status}`,
+    );
   }
   return data;
 }
 
-async function refreshTokens(): Promise<{ success: boolean; accessToken?: string }> {
+async function refreshTokens(): Promise<{
+  success: boolean;
+  accessToken?: string;
+}> {
   try {
     const curRefresh = getRefreshToken();
     if (!curRefresh) return { success: false };
@@ -95,7 +106,11 @@ async function refreshTokens(): Promise<{ success: boolean; accessToken?: string
   return { success: false };
 }
 
-export async function registerApi(payload: { name: string; email: string; password: string }) {
+export async function registerApi(payload: {
+  name: string;
+  email: string;
+  password: string;
+}) {
   return apiFetch("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -175,7 +190,11 @@ export async function getOrdersApi() {
   return apiFetch("/orders");
 }
 
-export async function placeOrderApi(orderData: { items: any[]; shippingAddress: string; paymentMethod: string }) {
+export async function placeOrderApi(orderData: {
+  items: any[];
+  shippingAddress: string;
+  paymentMethod: string;
+}) {
   return apiFetch("/orders", {
     method: "POST",
     body: JSON.stringify(orderData),
@@ -186,7 +205,11 @@ export async function getCartApi() {
   return apiFetch("/cart");
 }
 
-export async function addToCartApi(itemId: string | number, quantity: number = 1, size: string = "M") {
+export async function addToCartApi(
+  itemId: string | number,
+  quantity: number = 1,
+  size: string = "M",
+) {
   return apiFetch("/cart", {
     method: "POST",
     body: JSON.stringify({ itemId, quantity, size }),

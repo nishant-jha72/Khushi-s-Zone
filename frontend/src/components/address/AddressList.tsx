@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { MapPin, Plus, CheckCircle, AlertCircle } from "lucide-react";
-import type { UserAddress, CreateAddressPayload } from "../../services/addressApi";
+import type {
+  UserAddress,
+  CreateAddressPayload,
+} from "../../services/addressApi";
 import {
   getAddresses,
   createAddress,
@@ -49,7 +52,9 @@ export default function AddressList({
   const [editTarget, setEditTarget] = useState<UserAddress | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null); // which card is busy
-  const [actionType, setActionType] = useState<"default" | "delete" | null>(null);
+  const [actionType, setActionType] = useState<"default" | "delete" | null>(
+    null,
+  );
   const [deleteConfirm, setDeleteConfirm] = useState<UserAddress | null>(null);
   const [notification, setNotification] = useState<Notification | null>(null);
 
@@ -77,7 +82,7 @@ export default function AddressList({
     setIsSaving(true);
     try {
       if (editTarget) {
-        await updateAddress(editTarget.id, payload as any);
+        await updateAddress(editTarget.id, payload);
         notify("success", "Address updated successfully!");
       } else {
         await createAddress(payload);
@@ -170,7 +175,10 @@ export default function AddressList({
             </p>
           </div>
           <button
-            onClick={() => { setEditTarget(null); setShowForm(true); }}
+            onClick={() => {
+              setEditTarget(null);
+              setShowForm(true);
+            }}
             className="flex items-center gap-1.5 px-4 py-2.5 bg-[#4A2925] text-white rounded-full text-[11px] font-bold uppercase tracking-wide hover:bg-[#3D211E] transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -200,10 +208,17 @@ export default function AddressList({
           ) : addresses.length === 0 ? (
             <div className="py-16 text-center space-y-3 bg-white rounded-2xl border border-dashed border-[#EDE5D5]">
               <MapPin className="w-10 h-10 mx-auto text-[#4A2925] opacity-20" />
-              <p className="text-sm font-semibold text-[#4A2925]">No addresses saved</p>
-              <p className="text-xs text-[#8C7A6B]">Add a delivery address to speed up checkout</p>
+              <p className="text-sm font-semibold text-[#4A2925]">
+                No addresses saved
+              </p>
+              <p className="text-xs text-[#8C7A6B]">
+                Add a delivery address to speed up checkout
+              </p>
               <button
-                onClick={() => { setEditTarget(null); setShowForm(true); }}
+                onClick={() => {
+                  setEditTarget(null);
+                  setShowForm(true);
+                }}
                 className="mt-2 px-5 py-2.5 bg-[#4A2925] text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-[#3D211E] transition"
               >
                 Add Your First Address
@@ -218,7 +233,9 @@ export default function AddressList({
                   onEdit={handleEdit}
                   onDelete={(a) => setDeleteConfirm(a)}
                   onSetDefault={handleSetDefault}
-                  isSettingDefault={actionId === addr.id && actionType === "default"}
+                  isSettingDefault={
+                    actionId === addr.id && actionType === "default"
+                  }
                   isDeleting={actionId === addr.id && actionType === "delete"}
                   selectable={selectable}
                   isSelected={selectedAddressId === addr.id}
@@ -232,7 +249,7 @@ export default function AddressList({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setDeleteConfirm(null)}
@@ -242,11 +259,16 @@ export default function AddressList({
               <AlertCircle className="w-6 h-6 text-red-600" />
             </div>
             <div className="text-center space-y-1">
-              <h4 className="font-serif text-base font-bold text-[#4A2925]">Delete this address?</h4>
+              <h4 className="font-serif text-base font-bold text-[#4A2925]">
+                Delete this address?
+              </h4>
               <p className="text-xs text-[#8C7A6B]">
-                <strong>{deleteConfirm.addressLine1}</strong>, {deleteConfirm.city}
+                <strong>{deleteConfirm.addressLine1}</strong>,{" "}
+                {deleteConfirm.city}
               </p>
-              <p className="text-xs text-[#8C7A6B] mt-1">This action cannot be undone.</p>
+              <p className="text-xs text-[#8C7A6B] mt-1">
+                This action cannot be undone.
+              </p>
             </div>
             <div className="flex gap-3">
               <button
