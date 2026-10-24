@@ -244,3 +244,120 @@ module.exports = {
   sendWelcomeConfirmationEmail,
   sendDailySalesReportEmail,
 };
+
+/**
+ * Send order notification email to admin
+ */
+async function sendOrderNotificationEmail(orderDetails) {
+  const to = process.env.ORDER_NOTIFICATION_EMAIL;
+  if (!to) {
+    console.log("ℹ️  ORDER_NOTIFICATION_EMAIL not set, skipping admin notification");
+    return;
+  }
+
+  try {
+    const activeTransporter = await getTransporter();
+    if (!activeTransporter) {
+      console.log("ℹ️  No mail transporter; order notification not sent.");
+      return;
+    }
+
+    const {
+      orderNumber,
+      createdAt,
+      orderStatus,
+      paymentMethod,
+      paymentStatus,
+      subtotal,
+      deliveryFee = 0,
+      discountAmount = 0,
+      totalAmount,
+      customer,
+      address,
+      items,
+      manufacturers
+    } = orderDetails;
+
+    const itemsHtml = items.map(item => `
+      <tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #EDE5D5;font-size:13px;">${esc(item.product_name || item.name)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #EDE5D5;font-size:13px;">${item.quantity}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #EDE5D5;font-size:13px;">${item.size || 'N/A'}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #EDE5D5;font-size:13px;">${inr(item.unit_price || item.price)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #EDE5D5;font-size:13px;">${inr(item.line_total || (item.unit_price || item.price) * item.quantity)}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #EDE5D5;font-size:13px;">${esc(item.manufacturer_name || '')}</td>
+      </tr>
+    `).join('');
+
+    const htmlContent = `
+    <div style="font-family:Arial,sans-serif;max-width:800px;margin:0 auto;border:1px solid #EDE5D5;border-radius:12px;padding:24px;background:#FAF7F2;color:#4A2925;">
+      <h2 style="font-family:Georgia,serif;margin:0;">New Order Notification</h2>
+      <p style="color:#8C7A6B;font-size:13px;margin:4px 0 20px;">Khushi's Zone - Order Alert</p>
+
+      <h3 style="font-family:Georgia,serif;color:#4A2925;margin:20px 0 8px;">Order Details</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Order Number:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(orderNumber)}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Order Date:</strong></td><td style="padding:6px 0;font-size:13px;">${new Date(createdAt).toLocaleString('en-IN')}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Order Status:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(orderStatus)}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Payment Method:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(paymentMethod)}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Payment Status:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(paymentStatus)}</td></tr>
+      </table>
+
+      <h3 style="font-family:Georgia,serif;color:#4A2925;margin:20px 0 8px;">Customer Details</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Name:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(customer?.name || '')}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Email:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(customer?.email || '')}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;"><strong>Phone:</strong></td><td style="padding:6px 0;font-size:13px;">${esc(customer?.phone || '')}</td></tr>
+      </table>
+
+      <h3 style="font-family:Georgia,serif;color:#4A2925;margin:20px 0 8px;">Delivery Address</h3>
+      <p style="font-size:13px;line-height:1.6;">
+        ${esc(address?.full_name || address?.fullName || '')}<br/>
+        ${esc(address?.address_line1 || address?.addressLine1 || '')}<br/>
+        ${address?.address_line2 || address?.addressLine2 ? esc(address?.address_line2 || address?.addressLine2) + '<br/>' : ''}
+        ${esc(address?.city || '')}, ${esc(address?.state || '')} ${esc(address?.postal_code || address?.postalCode || '')}<br/>
+        ${esc(address?.country || 'India')}<br/>
+        Phone: ${esc(address?.phone_number || address?.phoneNumber || '')}
+      </p>
+
+      <h3 style="font-family:Georgia,serif;color:#4A2925;margin:20px 0 8px;">Product Details</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr>
+          <th style="${th}">Product</th>
+          <th style="${th}">Qty</th>
+          <th style="${th}">Size</th>
+          <th style="${th}">Unit Price</th>
+          <th style="${th}">Line Total</th>
+          <th style="${th}">Manufacturer</th>
+        </tr>
+        ${itemsHtml}
+      </table>
+
+      <h3 style="font-family:Georgia,serif;color:#4A2925;margin:20px 0 8px;">Order Summary</h3>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:6px 0;font-size:13px;">Subtotal:</td><td style="padding:6px 0;font-size:13px;text-align:right;">${inr(subtotal)}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;">Delivery Fee:</td><td style="padding:6px 0;font-size:13px;text-align:right;">${inr(deliveryFee)}</td></tr>
+        <tr><td style="padding:6px 0;font-size:13px;">Discount:</td><td style="padding:6px 0;font-size:13px;text-align:right;">${inr(discountAmount)}</td></tr>
+        <tr><td style="padding:10px 0;font-size:14px;font-weight:bold;border-top:2px solid #EDE5D5;">Total Amount:</td><td style="padding:10px 0;font-size:14px;font-weight:bold;text-align:right;border-top:2px solid #EDE5D5;">${inr(totalAmount)}</td></tr>
+      </table>
+
+      <hr style="border:0;border-top:1px solid #EDE5D5;margin:20px 0;" />
+      <p style="font-size:11px;color:#8C7A6B;text-align:center;">Khushi's Zone © 2026</p>
+    </div>
+    `;
+
+    const info = await activeTransporter.sendMail({
+      from: '"Khushi\'s Zone Orders" <noreply@khushizone.com>',
+      to,
+      subject: `New Order - ${orderNumber} - ${inr(totalAmount)}`,
+      html: htmlContent,
+    });
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) console.log(`📧 Order notification preview URL: ${previewUrl}`);
+    console.log(`📧 Order notification sent for ${orderNumber}`);
+  } catch (err) {
+    console.error("❌ Failed to send order notification:", err.message);
+  }
+}
+
+module.exports.sendOrderNotificationEmail = sendOrderNotificationEmail;

@@ -255,3 +255,15 @@ export async function getCategoriesApi() {
 export async function getProductDetailApi(id: string | number) {
   return apiFetch(`/products/${id}`);
 }
+
+export async function getMyOrdersApi() {
+  return apiFetch("/orders/my-orders");
+}
+
+export async function getOrderByIdApi(orderId: string | number) {
+  return apiFetch(`/orders/${orderId}`);
+}
+
+export async function getOrderTrackingApi(orderId: string | number) {
+  return apiFetch(`/orders/${orderId}/tracking`);
+}
