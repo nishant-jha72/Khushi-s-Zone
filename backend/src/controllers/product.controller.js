@@ -1,13 +1,37 @@
 "use strict";
 
-/**
- * product.controller.js
- * Express controllers for managing products, colors, and variants.
- */
+const { getCachedData } = require("../util.js/cache");
+const redisClient = require("../config/redis");
 
 const itemModel = require("../models/item.model");
 const productMediaModel = require("../models/productMedia.model");
 const cloudinaryService = require("../services/cloudinary.service");
+
+// Cache key patterns
+const PRODUCT_LIST_PATTERN = "products:list:*";
+
+async function invalidateProductCaches(productId) {
+  try {
+    // Invalidate all product list/filter/pagination combinations
+    const listKeys = await redisClient.keys(PRODUCT_LIST_PATTERN);
+
+    const keysToDelete = [...listKeys];
+
+    if (productId !== undefined && productId !== null) {
+      keysToDelete.push(
+        `products:detail:${productId}`,
+        `products:variants:${productId}`,
+      );
+    }
+
+    if (keysToDelete.length > 0) {
+      await redisClient.del(...keysToDelete);
+    }
+  } catch (error) {
+    // Cache failure should not fail a successful database operation
+    console.error("Product cache invalidation failed:", error.message);
+  }
+}
 
 /**
  * GET /api/products
@@ -15,87 +39,119 @@ const cloudinaryService = require("../services/cloudinary.service");
  */
 async function listProducts(req, res) {
   try {
-    const page = parseInt(req.query.page || "1", 10);
-    const limit = parseInt(req.query.limit || "20", 10);
-    const categorySlug = req.query.category || req.query.categorySlug;
-    const search = req.query.search;
+    const parsedPage = parseInt(req.query.page || "1", 10);
+    const parsedLimit = parseInt(req.query.limit || "20", 10);
 
-    const result = await itemModel.listActiveItems({
+    const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(100, Math.max(1, parsedLimit))
+      : 20;
+
+    const categorySlug = req.query.category || req.query.categorySlug || "";
+
+    const search = req.query.search || "";
+
+    const cacheKey = `products:list:${JSON.stringify({
       page,
       limit,
       categorySlug,
       search,
-    });
+    })}`;
 
-    // Format for existing frontend contract
-    const products = result.items.map((item) => ({
-      id: item.id.toString(),
-      itemId: item.id,
-      name: item.name,
-      category: item.category.slug || "dresses",
-      categoryId: item.category.id,
-      categoryName: item.category.name,
-      description: item.description,
-      price: item.price,
-      originalPrice: item.originalPrice,
-      sizes: item.sizes,
-      type: item.type,
-      image: item.image,
-      rating: item.rating,
-      badge: item.isBestseller ? "BESTSELLER" : undefined,
-      sku: item.sku,
-      brand: item.brand,
-      material: item.material,
-      stockStatus: item.stockStatus,
-    }));
+    const response = await getCachedData(
+      cacheKey,
+      async () => {
+        const result = await itemModel.listActiveItems({
+          page,
+          limit,
+          categorySlug,
+          search,
+        });
 
-    res.json({
-      success: true,
-      total: result.total,
-      page: result.page,
-      totalPages: result.totalPages,
-      count: products.length,
-      products,
-    });
+        const products = result.items.map((item) => ({
+          id: item.id.toString(),
+          itemId: item.id,
+          name: item.name,
+          category: item.category.slug || "dresses",
+          categoryId: item.category.id,
+          categoryName: item.category.name,
+          description: item.description,
+          price: item.price,
+          originalPrice: item.originalPrice,
+          sizes: item.sizes,
+          type: item.type,
+          image: item.image,
+          rating: item.rating,
+          badge: item.isBestseller ? "BESTSELLER" : undefined,
+          sku: item.sku,
+          brand: item.brand,
+          material: item.material,
+          stockStatus: item.stockStatus,
+        }));
+
+        return {
+          success: true,
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          count: products.length,
+          products,
+        };
+      },
+      300,
+    );
+
+    return res.json(response);
   } catch (error) {
     console.error("Error fetching products:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch products" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch products",
+    });
   }
 }
 
 /**
  * GET /api/products/:id
- * Get full single product detail with gallery, colors, sizes, and variants.
+ * Get product details.
  */
 async function getProduct(req, res) {
   try {
-    const { id } = req.params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(req.params.id, 10);
 
-    if (isNaN(numericId) || numericId <= 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid product ID" });
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
     }
 
-    const product = await itemModel.getItemById(numericId);
+    const product = await getCachedData(
+      `products:detail:${numericId}`,
+      () => itemModel.getItemById(numericId),
+      120,
+    );
+
     if (!product) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    res.json({
+    return res.json({
       success: true,
       product,
     });
   } catch (error) {
     console.error("Error fetching product detail:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch product details" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch product details",
+    });
   }
 }
 
@@ -108,16 +164,20 @@ async function createProduct(req, res) {
     const productId = await itemModel.createItem(req.body);
     const product = await itemModel.getItemById(productId);
 
-    res.status(201).json({
+    await invalidateProductCaches(productId);
+
+    return res.status(201).json({
       success: true,
       message: "Product created successfully",
       product,
     });
   } catch (error) {
     console.error("Error creating product:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to create product" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create product",
+    });
   }
 }
 
@@ -127,35 +187,42 @@ async function createProduct(req, res) {
  */
 async function updateProduct(req, res) {
   try {
-    const { id } = req.params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(req.params.id, 10);
 
-    if (isNaN(numericId) || numericId <= 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid product ID" });
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
     }
 
     const exists = await itemModel.itemExists(numericId);
+
     if (!exists) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
     await itemModel.updateItem(numericId, req.body);
+
     const product = await itemModel.getItemById(numericId);
 
-    res.json({
+    await invalidateProductCaches(numericId);
+
+    return res.json({
       success: true,
       message: "Product updated successfully",
       product,
     });
   } catch (error) {
     console.error("Error updating product:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update product" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update product",
+    });
   }
 }
 
@@ -165,14 +232,14 @@ async function updateProduct(req, res) {
  */
 async function setProductStatus(req, res) {
   try {
-    const { id } = req.params;
+    const numericId = parseInt(req.params.id, 10);
     const { isActive } = req.body;
 
-    const numericId = parseInt(id, 10);
-    if (isNaN(numericId) || numericId <= 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid product ID" });
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
     }
 
     if (typeof isActive !== "boolean") {
@@ -183,69 +250,81 @@ async function setProductStatus(req, res) {
     }
 
     const updated = await itemModel.setItemActive(numericId, isActive);
+
     if (!updated) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
-    res.json({
+    await invalidateProductCaches(numericId);
+
+    return res.json({
       success: true,
       message: `Product ${isActive ? "activated" : "deactivated"} successfully`,
       product: updated,
     });
   } catch (error) {
     console.error("Error setting product status:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update product status" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update product status",
+    });
   }
 }
 
 /**
  * DELETE /api/products/:id
- * Delete product and clean up all Cloudinary assets. Admin only.
+ * Delete product and clean up Cloudinary assets. Admin only.
  */
 async function deleteProduct(req, res) {
   try {
-    const { id } = req.params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(req.params.id, 10);
 
-    if (isNaN(numericId) || numericId <= 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid product ID" });
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
     }
 
     const exists = await itemModel.itemExists(numericId);
+
     if (!exists) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Product not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
     }
 
     const mediaList = await itemModel.deleteItem(numericId);
+
+    await invalidateProductCaches(numericId);
 
     for (const media of mediaList) {
       try {
         await cloudinaryService.deleteMedia(media.publicId, media.mediaType);
       } catch (cloudinaryErr) {
         console.error(
-          `⚠️ Failed to delete Cloudinary asset ${media.publicId}:`,
+          `Failed to delete Cloudinary asset ${media.publicId}:`,
           cloudinaryErr.message,
         );
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: "Product and associated media deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting product:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to delete product" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete product",
+    });
   }
 }
 
@@ -259,22 +338,36 @@ async function addProductColor(req, res) {
     const { colorName, hexCode } = req.body;
     const numericId = parseInt(id, 10);
 
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
     if (!colorName || !colorName.trim()) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Color name is required" });
+      return res.status(400).json({
+        success: false,
+        message: "Color name is required",
+      });
     }
 
     const color = await itemModel.upsertColor(numericId, colorName, hexCode);
 
-    res.status(201).json({
+    await invalidateProductCaches(numericId);
+
+    return res.status(201).json({
       success: true,
       message: "Color added/updated successfully",
       color,
     });
   } catch (error) {
     console.error("Error adding product color:", error);
-    res.status(500).json({ success: false, message: "Failed to add color" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to add color",
+    });
   }
 }
 
@@ -284,19 +377,32 @@ async function addProductColor(req, res) {
  */
 async function getVariants(req, res) {
   try {
-    const { id } = req.params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(req.params.id, 10);
 
-    const variants = await itemModel.getVariants(numericId);
-    res.json({
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
+
+    const variants = await getCachedData(
+      `products:variants:${numericId}`,
+      () => itemModel.getVariants(numericId),
+      120,
+    );
+
+    return res.json({
       success: true,
       variants,
     });
   } catch (error) {
     console.error("Error fetching product variants:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to fetch variants" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch variants",
+    });
   }
 }
 
@@ -306,22 +412,34 @@ async function getVariants(req, res) {
  */
 async function upsertVariant(req, res) {
   try {
-    const { id } = req.params;
-    const numericId = parseInt(id, 10);
+    const numericId = parseInt(req.params.id, 10);
+
+    if (!Number.isInteger(numericId) || numericId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product ID",
+      });
+    }
 
     const variant = await itemModel.upsertVariant({
       itemId: numericId,
       ...req.body,
     });
 
-    res.status(201).json({
+    await invalidateProductCaches(numericId);
+
+    return res.status(201).json({
       success: true,
       message: "Variant saved successfully",
       variant,
     });
   } catch (error) {
-    console.error("Error saving variant:", error);
-    res.status(500).json({ success: false, message: "Failed to save variant" });
+    console.error("Error saving product variant:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save variant",
+    });
   }
 }
 
@@ -331,16 +449,27 @@ async function upsertVariant(req, res) {
  */
 async function setVariantStatus(req, res) {
   try {
-    const { id, variantId } = req.params;
+    const numericId = parseInt(req.params.id, 10);
+    const numericVariantId = parseInt(req.params.variantId, 10);
     const { isActive } = req.body;
 
-    const numericId = parseInt(id, 10);
-    const numericVariantId = parseInt(variantId, 10);
+    if (
+      !Number.isInteger(numericId) ||
+      numericId <= 0 ||
+      !Number.isInteger(numericVariantId) ||
+      numericVariantId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid product or variant ID",
+      });
+    }
 
     if (typeof isActive !== "boolean") {
-      return res
-        .status(400)
-        .json({ success: false, message: "'isActive' boolean is required" });
+      return res.status(400).json({
+        success: false,
+        message: "'isActive' boolean is required",
+      });
     }
 
     const updated = await itemModel.setVariantActive(
@@ -348,6 +477,7 @@ async function setVariantStatus(req, res) {
       numericId,
       isActive,
     );
+
     if (!updated) {
       return res.status(404).json({
         success: false,
@@ -355,19 +485,22 @@ async function setVariantStatus(req, res) {
       });
     }
 
-    res.json({
+    await invalidateProductCaches(numericId);
+
+    return res.json({
       success: true,
       message: `Variant ${isActive ? "activated" : "deactivated"} successfully`,
       variant: updated,
     });
   } catch (error) {
     console.error("Error setting variant status:", error);
-    res
-      .status(500)
-      .json({ success: false, message: "Failed to update variant status" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update variant status",
+    });
   }
 }
-
 
 module.exports = {
   listProducts,
