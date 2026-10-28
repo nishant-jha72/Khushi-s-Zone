@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   User,
   Package,
@@ -16,9 +17,10 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { getOrdersApi } from "../services/api";
 import AddressList from "../components/address/AddressList";
+import { useLayout } from "../components/layout/useLayout";
 
 interface MyAccountPageProps {
-  onBackToHome: () => void;
+  onBackToHome?: () => void;
   defaultTab?: string;
 }
 
@@ -47,13 +49,37 @@ export default function MyAccountPage({
   onBackToHome,
   defaultTab = "profile",
 }: MyAccountPageProps) {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const layout = useLayout();
   const { user, updateProfile, logout, wishlistedProducts, toggleWishlist } =
     useAuth();
-  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+
+  const tabFromQuery = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<string>(
+    tabFromQuery || defaultTab,
+  );
 
   useEffect(() => {
-    setActiveTab(defaultTab);
-  }, [defaultTab]);
+    if (tabFromQuery) {
+      setActiveTab(tabFromQuery);
+    } else {
+      setActiveTab(defaultTab);
+    }
+  }, [tabFromQuery, defaultTab]);
+
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    setSearchParams({ tab: newTab });
+  };
+
+  const handleBack = () => {
+    if (onBackToHome) {
+      onBackToHome();
+    } else {
+      navigate("/");
+    }
+  };
 
   // Form states for profile editing
   const [name, setName] = useState(user?.name || "");
@@ -111,7 +137,7 @@ export default function MyAccountPage({
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F7F2EA] flex items-center justify-center p-6 text-center">
+      <div className="py-20 flex items-center justify-center p-6 text-center">
         <div className="bg-[#FAF7F2] p-8 rounded-3xl border border-[#EDE5D5] shadow-xl max-w-md w-full space-y-4">
           <User className="w-12 h-12 mx-auto text-[#4A2925] opacity-50" />
           <h2 className="font-serif text-2xl font-bold text-[#4A2925]">
@@ -121,12 +147,20 @@ export default function MyAccountPage({
             Please sign in to view your account details, past orders, and saved
             addresses.
           </p>
-          <button
-            onClick={onBackToHome}
-            className="w-full py-2.5 bg-[#4A2925] text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-[#3D211E]"
-          >
-            Return to Homepage
-          </button>
+          <div className="flex flex-col gap-2 pt-2">
+            <button
+              onClick={() => layout?.openAuth("login")}
+              className="w-full py-2.5 bg-[#4A2925] text-white rounded-full text-xs font-bold uppercase tracking-wider hover:bg-[#3D211E] transition cursor-pointer"
+            >
+              Sign In to Your Account
+            </button>
+            <button
+              onClick={handleBack}
+              className="w-full py-2.5 border border-[#4A2925] text-[#4A2925] rounded-full text-xs font-bold uppercase tracking-wider hover:bg-[#EDE5D5] transition cursor-pointer"
+            >
+              Return to Homepage
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -139,8 +173,8 @@ export default function MyAccountPage({
         <div className="flex flex-wrap items-center justify-between gap-4 bg-[#FAF7F2] p-6 rounded-3xl border border-[#EDE5D5] shadow-sm">
           <div className="flex items-center space-x-4">
             <button
-              onClick={onBackToHome}
-              className="p-2 text-[#4A2925] hover:bg-[#EDE5D5] rounded-full transition-colors"
+              onClick={handleBack}
+              className="p-2 text-[#4A2925] hover:bg-[#EDE5D5] rounded-full transition-colors cursor-pointer"
               title="Back to Home"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -180,8 +214,8 @@ export default function MyAccountPage({
           {/* Sidebar Navigation */}
           <div className="lg:col-span-1 bg-[#FAF7F2] rounded-3xl p-4 border border-[#EDE5D5] shadow-sm space-y-2 h-fit">
             <button
-              onClick={() => setActiveTab("profile")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left ${
+              onClick={() => handleTabChange("profile")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                 activeTab === "profile"
                   ? "bg-[#4A2925] text-white shadow-sm"
                   : "text-[#4A2925] hover:bg-[#EDE5D5]/70"
@@ -192,8 +226,8 @@ export default function MyAccountPage({
             </button>
 
             <button
-              onClick={() => setActiveTab("addresses")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left ${
+              onClick={() => handleTabChange("addresses")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                 activeTab === "addresses"
                   ? "bg-[#4A2925] text-white shadow-sm"
                   : "text-[#4A2925] hover:bg-[#EDE5D5]/70"
@@ -204,8 +238,8 @@ export default function MyAccountPage({
             </button>
 
             <button
-              onClick={() => setActiveTab("orders")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left ${
+              onClick={() => handleTabChange("orders")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                 activeTab === "orders"
                   ? "bg-[#4A2925] text-white shadow-sm"
                   : "text-[#4A2925] hover:bg-[#EDE5D5]/70"
@@ -216,8 +250,8 @@ export default function MyAccountPage({
             </button>
 
             <button
-              onClick={() => setActiveTab("payments")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left ${
+              onClick={() => handleTabChange("payments")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                 activeTab === "payments"
                   ? "bg-[#4A2925] text-white shadow-sm"
                   : "text-[#4A2925] hover:bg-[#EDE5D5]/70"
@@ -228,8 +262,8 @@ export default function MyAccountPage({
             </button>
 
             <button
-              onClick={() => setActiveTab("wishlist")}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left ${
+              onClick={() => handleTabChange("wishlist")}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer ${
                 activeTab === "wishlist"
                   ? "bg-[#4A2925] text-white shadow-sm"
                   : "text-[#4A2925] hover:bg-[#EDE5D5]/70"

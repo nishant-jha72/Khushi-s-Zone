@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import {
   getAllProductsAdminApi,
@@ -9,10 +10,12 @@ import { ProductTable, type ProductItem } from "../../components/admin/ProductTa
 import { AddEditProductForm } from "../../components/admin/AddEditProductForm";
 
 interface AdminPageProps {
-  onBackToHome: () => void;
+  onBackToHome?: () => void;
 }
 
 export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
+  const navigate = useNavigate();
+  const handleBack = onBackToHome || (() => navigate("/"));
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"products" | "add_product">("products");
   const [products, setProducts] = useState<ProductItem[]>([]);
@@ -89,8 +92,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
             You don't have permission to access the seller panel. Please sign in as an admin user.
           </p>
           <button
-            onClick={onBackToHome}
-            className="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-black transition"
+            onClick={handleBack}
+            className="px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-black transition cursor-pointer"
           >
             Return to Store
           </button>
@@ -119,8 +122,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
               <div className="text-[10px] text-gray-500">{user.email}</div>
             </div>
             <button
-              onClick={onBackToHome}
-              className="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg transition"
+              onClick={handleBack}
+              className="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-sm font-semibold rounded-lg transition cursor-pointer"
             >
               Back to Storefront ↗
             </button>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { NavLink } from "react-router-dom";
 import { Truck } from "lucide-react";
 import { getCategoriesApi } from "../../services/api";
 
@@ -16,7 +17,6 @@ export default function CategoryNavigation({
   onCategorySelect,
 }: CategoryNavigationProps) {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -33,51 +33,64 @@ export default function CategoryNavigation({
     fetchCats();
   }, []);
 
-  const handleCategoryClick = (slug: string) => {
-    console.log('CategoryNavigation handleCategoryClick called with slug:', slug);
-    console.log('CategoryNavigation button clicked:', slug);
-    setSelectedCategory(slug);
-    onCategorySelect?.(slug);
-  };
-
   return (
     <div className="hidden lg:block w-full border-t border-[#EDE5D5] bg-[#F7F2EA]/90 px-4 sm:px-8 lg:px-12">
       <div className="w-full flex items-center justify-between h-11 text-[11px] font-semibold tracking-[0.14em] text-[#4A2925] uppercase">
         {/* Dynamic Categories from Database */}
         <nav className="flex items-center space-x-8">
           {categories.map((cat) => (
-            <button
+            <NavLink
               key={cat.id}
-              onClick={() => handleCategoryClick(cat.slug)}
-              className={`py-1 transition-colors duration-200 ${
-                selectedCategory === cat.slug
-                  ? "text-[#8C7A6B] font-bold"
-                  : "text-[#4A2925] hover:text-[#8C7A6B]"
-              }`}
-              aria-pressed={selectedCategory === cat.slug}
+              to={`/category/${cat.slug}`}
+              onClick={() => onCategorySelect?.(cat.slug)}
+              className={({ isActive }) =>
+                `py-1 transition-colors duration-200 border-b-2 ${
+                  isActive
+                    ? "text-[#8C7A6B] font-bold border-[#8C7A6B]"
+                    : "text-[#4A2925] hover:text-[#8C7A6B] border-transparent"
+                }`
+              }
             >
               {cat.name}
-            </button>
+            </NavLink>
           ))}
         </nav>
 
         {/* Right Links */}
         <nav className="flex items-center space-x-8 text-[10px] text-[#6E493F]">
-          <a
-            href="#track"
-            className="hover:text-[#4A2925] flex items-center space-x-1.5 transition-colors"
+          <NavLink
+            to="/track"
+            className={({ isActive }) =>
+              `hover:text-[#4A2925] flex items-center space-x-1.5 transition-colors ${
+                isActive ? "text-[#4A2925] font-bold" : ""
+              }`
+            }
           >
             <Truck className="w-3.5 h-3.5" />
             <span>TRACK ORDER</span>
-          </a>
+          </NavLink>
 
-          <a href="#contact" className="hover:text-[#4A2925] transition-colors">
+          <NavLink
+            to="/contact"
+            className={({ isActive }) =>
+              `hover:text-[#4A2925] transition-colors ${
+                isActive ? "text-[#4A2925] font-bold" : ""
+              }`
+            }
+          >
             CONTACT
-          </a>
+          </NavLink>
 
-          <a href="#account" className="hover:text-[#4A2925] transition-colors">
+          <NavLink
+            to="/account"
+            className={({ isActive }) =>
+              `hover:text-[#4A2925] transition-colors ${
+                isActive ? "text-[#4A2925] font-bold" : ""
+              }`
+            }
+          >
             MY ACCOUNT
-          </a>
+          </NavLink>
         </nav>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Search,
   Heart,
@@ -18,12 +19,12 @@ import { useAuth } from "../../context/AuthContext";
 interface HeaderProps {
   wishlistCount: number;
   cartCount: number;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  searchQuery?: string;
+  setSearchQuery?: (query: string) => void;
   onOpenCart: () => void;
   onOpenWishlist: () => void;
   onOpenLogin: () => void;
-  onOpenAccount: (tab?: string) => void;
+  onOpenAccount?: (tab?: string) => void;
   onOpenAdmin?: () => void;
   onSelectCategory?: (category: string) => void;
 }
@@ -31,7 +32,7 @@ interface HeaderProps {
 export default function Header({
   wishlistCount,
   cartCount,
-  searchQuery,
+  searchQuery = "",
   setSearchQuery,
   onOpenCart,
   onOpenWishlist,
@@ -41,6 +42,7 @@ export default function Header({
   onSelectCategory,
 }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -104,6 +106,33 @@ export default function Header({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleAccountNavigation = (tab: string = "profile") => {
+    setIsUserDropdownOpen(false);
+    setIsMobileMenuOpen(false);
+    if (onOpenAccount) {
+      onOpenAccount(tab);
+    } else {
+      navigate(`/account?tab=${tab}`);
+    }
+  };
+
+  const handleAdminNavigation = () => {
+    setIsUserDropdownOpen(false);
+    setIsMobileMenuOpen(false);
+    if (onOpenAdmin) {
+      onOpenAdmin();
+    } else {
+      navigate("/admin");
+    }
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <header
       className={`sticky top-0 left-0 right-0 z-40 w-full transition-transform duration-300 ease-in-out ${
@@ -131,12 +160,8 @@ export default function Header({
                 <Menu className="w-6 h-6" />
               </button>
 
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
+              <Link
+                to="/"
                 className="flex items-center space-x-3 sm:space-x-4 group"
               >
                 <div className="flex items-center space-x-2">
@@ -157,11 +182,14 @@ export default function Header({
                     </span>
                   </div>
                 </div>
-              </a>
+              </Link>
             </div>
 
             {/* Center: Search Input Bar */}
-            <div className="hidden md:flex flex-1 max-w-md mx-6 relative">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="hidden md:flex flex-1 max-w-md mx-6 relative"
+            >
               <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8C7A6B]">
                   <Search className="h-4 w-4" />
@@ -169,20 +197,21 @@ export default function Header({
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery?.(e.target.value)}
                   placeholder="Explore styles..."
                   className="w-full pl-9 pr-8 py-2 bg-[#EDE5D5]/60 hover:bg-[#EDE5D5] focus:bg-white text-xs font-medium text-[#4A2925] placeholder-[#8C7A6B] rounded-full focus:outline-none focus:ring-1 focus:ring-[#4A2925] border border-transparent transition-all"
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    type="button"
+                    onClick={() => setSearchQuery?.("")}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-[#8C7A6B] hover:text-[#4A2925]"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
-            </div>
+            </form>
 
             {/* Right Action Icons */}
             <div className="flex items-center space-x-2 sm:space-x-4">
@@ -244,41 +273,29 @@ export default function Header({
 
                       <div className="py-1">
                         <button
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            onOpenAccount("profile");
-                          }}
+                          onClick={() => handleAccountNavigation("profile")}
                           className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
                         >
                           <UserIcon className="w-4 h-4 text-[#8C7A6B]" />
                           <span>My Account</span>
                         </button>
                         <button
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            onOpenAccount("addresses");
-                          }}
+                          onClick={() => handleAccountNavigation("addresses")}
                           className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
                         >
                           <MapPin className="w-4 h-4 text-[#8C7A6B]" />
                           <span>Addresses</span>
                         </button>
                         <button
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            onOpenAccount("orders");
-                          }}
+                          onClick={() => handleAccountNavigation("orders")}
                           className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
                         >
                           <Package className="w-4 h-4 text-[#8C7A6B]" />
                           <span>Past Orders</span>
                         </button>
-                        {user.isAdmin && onOpenAdmin && (
+                        {user.isAdmin && (
                           <button
-                            onClick={() => {
-                              setIsUserDropdownOpen(false);
-                              onOpenAdmin();
-                            }}
+                            onClick={handleAdminNavigation}
                             className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-pink-700 bg-pink-50 hover:bg-pink-100 transition-colors text-left font-bold"
                           >
                             <Package className="w-4 h-4 text-pink-700" />
@@ -372,103 +389,125 @@ export default function Header({
               )}
 
               {/* Mobile Search */}
-              <div className="my-3 relative">
+              <form onSubmit={handleSearchSubmit} className="my-3 relative">
                 <Search className="w-4 h-4 absolute left-3 top-2.5 text-[#8C7A6B]" />
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery?.(e.target.value)}
                   placeholder="Explore styles..."
                   className="w-full pl-9 pr-8 py-2 bg-[#EDE5D5] text-xs rounded-full border-none focus:outline-none text-[#4A2925] placeholder-[#8C7A6B]"
                 />
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    type="button"
+                    onClick={() => setSearchQuery?.("")}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-xs text-[#8C7A6B]"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
-              </div>
+              </form>
 
               {/* Category Links */}
               <nav className="mt-4 space-y-2 text-xs font-semibold tracking-wider text-[#4A2925] uppercase">
-                <button
-                  onClick={() => {
-                    onSelectCategory?.("dresses");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                <NavLink
+                  to="/category/dresses"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] ${
+                      isActive ? "text-[#6E493F] font-bold" : ""
+                    }`
+                  }
                 >
                   DRESSES
-                </button>
-                <button
-                  onClick={() => {
-                    onSelectCategory?.("tops");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                </NavLink>
+                <NavLink
+                  to="/category/tops"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] ${
+                      isActive ? "text-[#6E493F] font-bold" : ""
+                    }`
+                  }
                 >
                   TOPS
-                </button>
-                <button
-                  onClick={() => {
-                    onSelectCategory?.("bottoms");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                </NavLink>
+                <NavLink
+                  to="/category/bottoms"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] ${
+                      isActive ? "text-[#6E493F] font-bold" : ""
+                    }`
+                  }
                 >
                   BOTTOMS
-                </button>
-                <button
-                  onClick={() => {
-                    onSelectCategory?.("accessories");
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
+                </NavLink>
+                <NavLink
+                  to="/category/accessories"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] ${
+                      isActive ? "text-[#6E493F] font-bold" : ""
+                    }`
+                  }
                 >
                   ACCESSORIES
-                </button>
+                </NavLink>
+
+                {/* Quick Utility Links */}
+                <NavLink
+                  to="/track"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] ${
+                      isActive ? "text-[#6E493F] font-bold" : ""
+                    }`
+                  }
+                >
+                  TRACK ORDER
+                </NavLink>
+
+                <NavLink
+                  to="/contact"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block w-full text-left py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F] ${
+                      isActive ? "text-[#6E493F] font-bold" : ""
+                    }`
+                  }
+                >
+                  CONTACT US
+                </NavLink>
 
                 {/* Authenticated Links in Menu */}
                 {isAuthenticated && (
                   <>
                     <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        onOpenAccount("profile");
-                      }}
+                      onClick={() => handleAccountNavigation("profile")}
                       className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                     >
                       <UserIcon className="w-4 h-4 text-[#8C7A6B]" />
                       <span>MY ACCOUNT</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        onOpenAccount("addresses");
-                      }}
+                      onClick={() => handleAccountNavigation("addresses")}
                       className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                     >
                       <MapPin className="w-4 h-4 text-[#8C7A6B]" />
                       <span>ADDRESSES</span>
                     </button>
                     <button
-                      onClick={() => {
-                        setIsMobileMenuOpen(false);
-                        onOpenAccount("orders");
-                      }}
+                      onClick={() => handleAccountNavigation("orders")}
                       className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                     >
                       <Package className="w-4 h-4 text-[#8C7A6B]" />
                       <span>PAST ORDERS</span>
                     </button>
-                    {user?.isAdmin && onOpenAdmin && (
+                    {user?.isAdmin && (
                       <button
-                        onClick={() => {
-                          setIsMobileMenuOpen(false);
-                          onOpenAdmin();
-                        }}
+                        onClick={handleAdminNavigation}
                         className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 text-pink-700 font-bold"
                       >
                         <Package className="w-4 h-4 text-pink-700" />

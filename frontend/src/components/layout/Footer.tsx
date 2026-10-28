@@ -1,15 +1,48 @@
+import { useState, useEffect } from "react";
+import { Link, NavLink } from "react-router-dom";
 import { ArrowRight, Heart } from "lucide-react";
+import { getCategoriesApi } from "../../services/api";
 
-export default function Footer() {
+interface FooterProps {
+  onCategorySelect?: (categorySlug: string) => void;
+}
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export default function Footer({ onCategorySelect }: FooterProps) {
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const res = await getCategoriesApi();
+        if (res.success && res.categories) {
+          setCategories(res.categories);
+        }
+      } catch (err) {
+        console.error("Failed to load categories for footer:", err);
+      }
+    };
+
+    fetchCats();
+  }, []);
+
   return (
     <footer className="w-full bg-[#4A2925] text-[#F7F2EA] pt-16 pb-8 px-6 sm:px-12 lg:px-16 border-t border-[#3D211E]">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#5E3631]">
         {/* Brand Column */}
         <div className="lg:col-span-2 space-y-4 pr-4">
           <div className="space-y-1">
-            <h3 className="font-serif font-bold text-2xl tracking-tight text-[#FAF7F2]">
+            <Link
+              to="/"
+              className="inline-block font-serif font-bold text-2xl tracking-tight text-[#FAF7F2] hover:opacity-90 transition-opacity"
+            >
               Khushi's Zone
-            </h3>
+            </Link>
             <p className="font-['Great_Vibes',cursive] text-2xl text-[#D9CEB9]">
               "Your Points of Happiness"
             </p>
@@ -45,35 +78,22 @@ export default function Footer() {
           <h4 className="text-xs font-bold tracking-widest uppercase text-[#D9CEB9]">
             Shop
           </h4>
-          <ul className="space-y-2 text-xs text-[#E5DDD0]/80">
-            <li>
-              <a href="#dresses" className="hover:text-white transition-colors">
-                Anarkalis & Dresses
-              </a>
-            </li>
-            <li>
-              <a href="#tops" className="hover:text-white transition-colors">
-                Embroidered Tops
-              </a>
-            </li>
-            <li>
-              <a href="#bottoms" className="hover:text-white transition-colors">
-                Flared Bottoms
-              </a>
-            </li>
-            <li>
-              <a
-                href="#accessories"
-                className="hover:text-white transition-colors"
-              >
-                Ethnic Accessories
-              </a>
-            </li>
-            <li>
-              <a href="#new" className="hover:text-white transition-colors">
-                New Arrivals
-              </a>
-            </li>
+          <ul className="space-y-2 text-xs text-[#E5DDD0]/80 flex flex-col">
+            {categories.map((cat) => (
+              <li key={cat.id}>
+                <NavLink
+                  to={`/category/${cat.slug}`}
+                  onClick={() => onCategorySelect?.(cat.slug)}
+                  className={({ isActive }) =>
+                    `text-left transition-colors ${
+                      isActive ? "text-white font-bold underline underline-offset-4" : "hover:text-white"
+                    }`
+                  }
+                >
+                  {cat.name}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -84,35 +104,35 @@ export default function Footer() {
           </h4>
           <ul className="space-y-2 text-xs text-[#E5DDD0]/80">
             <li>
-              <a href="#track" className="hover:text-white transition-colors">
+              <Link to="/track" className="hover:text-white transition-colors">
                 Track Order
-              </a>
+              </Link>
             </li>
             <li>
-              <a
-                href="#shipping"
+              <Link
+                to="/contact#shipping"
                 className="hover:text-white transition-colors"
               >
                 Shipping Information
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#returns" className="hover:text-white transition-colors">
+              <Link to="/contact#returns" className="hover:text-white transition-colors">
                 Returns & Exchanges
-              </a>
+              </Link>
             </li>
             <li>
-              <a
-                href="#size-guide"
+              <Link
+                to="/contact#size-guide"
                 className="hover:text-white transition-colors"
               >
                 Size Guide
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#contact" className="hover:text-white transition-colors">
+              <Link to="/contact" className="hover:text-white transition-colors">
                 Contact Us
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
@@ -124,30 +144,30 @@ export default function Footer() {
           </h4>
           <ul className="space-y-2 text-xs text-[#E5DDD0]/80">
             <li>
-              <a
-                href="#brand-story"
+              <Link
+                to="/#brand-story"
                 className="hover:text-white transition-colors"
               >
                 Our Story
-              </a>
+              </Link>
             </li>
             <li>
-              <a
-                href="#craftsmanship"
+              <Link
+                to="/contact#craftsmanship"
                 className="hover:text-white transition-colors"
               >
                 Craftsmanship
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#privacy" className="hover:text-white transition-colors">
+              <Link to="/contact#privacy" className="hover:text-white transition-colors">
                 Privacy Policy
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#terms" className="hover:text-white transition-colors">
+              <Link to="/contact#terms" className="hover:text-white transition-colors">
                 Terms of Service
-              </a>
+              </Link>
             </li>
           </ul>
         </div>

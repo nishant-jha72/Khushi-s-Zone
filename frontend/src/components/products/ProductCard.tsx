@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Heart, ShoppingBag, Check } from "lucide-react";
 import type { Product } from "../../services/api";
 
@@ -17,11 +18,14 @@ export default function ProductCard({
   onAddToCart,
   onSelectProduct,
 }: ProductCardProps) {
+  const navigate = useNavigate();
   const [added, setAdded] = useState(false);
 
   const handleCardClick = () => {
     if (onSelectProduct) {
       onSelectProduct(product.id);
+    } else {
+      navigate(`/product/${product.id}`);
     }
   };
 
@@ -78,7 +82,7 @@ export default function ProductCard({
         <div className="absolute inset-x-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={handleAddClick}
-            className={`w-full py-2.5 px-4 rounded-full text-xs font-semibold tracking-wider uppercase flex items-center justify-center space-x-2 transition-all duration-200 shadow-md ${
+            className={`w-full py-2.5 px-4 rounded-full text-xs font-semibold tracking-wider uppercase flex items-center justify-center space-x-2 transition-all duration-200 shadow-md cursor-pointer ${
               added
                 ? "bg-emerald-800 text-white"
                 : "bg-[#4A2925] hover:bg-[#3D211E] text-white"

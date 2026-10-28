@@ -1,37 +1,44 @@
 import { useState, useEffect, useMemo } from "react";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import ProductCard from "../components/products/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { getProductsApi, type Product } from "../services/api";
 import { SlidersHorizontal, ArrowLeft, Search, X } from "lucide-react";
-import AuthModal from "../components/auth/AuthModal";
+import { useLayout } from "../components/layout/useLayout";
 
-interface CategoryProductsPageProps {
-  categorySlug: string;
-  onBackToHome: () => void;
-  onSelectProduct: (productId: string) => void;
-  onOpenAccount: (tab?: string) => void;
+interface CategoryPageProps {
+  categorySlug?: string;
+  onBackToHome?: () => void;
+  onSelectProduct?: (productId: string) => void;
+  onOpenAccount?: (tab?: string) => void;
   onOpenAdmin?: () => void;
   onSelectCategory?: (slug: string) => void;
 }
 
-export default function CategoryProductsPage({
-  categorySlug,
+export default function CategoryPage({
+  categorySlug: propSlug,
   onBackToHome,
   onSelectProduct,
-  onOpenAccount,
-  onOpenAdmin,
-  onSelectCategory,
-}: CategoryProductsPageProps) {
-  const { isAuthenticated, wishlist, addToCart, toggleWishlist, totalCartCount } = useAuth();
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+}: CategoryPageProps) {
+  const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
+  const layout = useLayout();
+  const { isAuthenticated, wishlist, addToCart, toggleWishlist } = useAuth();
+
+  const currentSlug = slug || propSlug || "dresses";
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<
+    "featured" | "low_high" | "high_low" | "newest"
+  >("featured");
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [maxPrice, setMaxPrice] = useState<number>(10000);
 
   const requireAuth = (action: () => void) => {
     if (!isAuthenticated) {
-      setAuthMode("login");
-      setIsAuthOpen(true);
+      layout?.openAuth("login");
       return;
     }
     action();
@@ -43,27 +50,29 @@ export default function CategoryProductsPage({
         await toggleWishlist(productId);
       } catch (err) {
         console.error(err);
-        setAuthMode("login");
-        setIsAuthOpen(true);
+        layout?.openAuth("login");
       }
     });
   };
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<
-    "featured" | "low_high" | "high_low" | "newest"
-  >("featured");
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [maxPrice, setMaxPrice] = useState<number>(10000);
+  const handleAddToCart = (product: Product) => {
+    requireAuth(async () => {
+      try {
+        await addToCart(product);
+        layout?.openCart();
+      } catch (err) {
+        console.error(err);
+        layout?.openAuth("login");
+      }
+    });
+  };
 
   useEffect(() => {
     const fetchCategoryProducts = async () => {
       setLoading(true);
       try {
         const res = await getProductsApi(
-          categorySlug || undefined,
+          currentSlug || undefined,
           search || undefined,
         );
         if (res.success && res.products) {
@@ -77,7 +86,7 @@ export default function CategoryProductsPage({
     };
 
     fetchCategoryProducts();
-  }, [categorySlug, search]);
+  }, [currentSlug, search]);
 
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...products];
@@ -103,36 +112,39 @@ export default function CategoryProductsPage({
   }, [products, maxPrice, selectedSize, sortBy]);
 
   const categoryTitle =
-    categorySlug.charAt(0).toUpperCase() +
-    categorySlug.slice(1).replace("-", " ");
+    currentSlug.charAt(0).toUpperCase() +
+    currentSlug.slice(1).replace("-", " ");
+
+  const handleProductClick = (productId: string) => {
+    if (onSelectProduct) {
+      onSelectProduct(productId);
+    } else {
+      navigate(`/product/${productId}`);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F7F2EA] text-[#4A2925] font-sans antialiased flex flex-col">
-       <Header
-         wishlistCount={wishlist.length}
-         cartCount={totalCartCount}
-         searchQuery={search}
-         setSearchQuery={setSearch}
-         onOpenCart={() => requireAuth(() => {/* cart UI not present on this page */})}
-         onOpenWishlist={() => requireAuth(() => {/* wishlist UI not present on this page */})}
-         onOpenLogin={() => {
-           setAuthMode("login");
-           setIsAuthOpen(true);
-         }}
-         onOpenAccount={onOpenAccount}
-         onOpenAdmin={onOpenAdmin}
-         onSelectCategory={onSelectCategory}
-       />
+    <div className="w-full">
       {/* Hero Banner for Category */}
       <div className="bg-[#EDE5D5] py-5 px-4 sm:px-8 border-b border-[#D9CEB9]">
-        <div className="max-w-5xl mx-auto space-y-2">
-          <button
-            onClick={onBackToHome}
-            className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8C7A6B] hover:text-[#4A2925] transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Back to Storefront</span>
-          </button>
+        <div className="max-w-7xl mx-auto space-y-2">
+          {onBackToHome ? (
+            <button
+              onClick={onBackToHome}
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8C7A6B] hover:text-[#4A2925] transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Storefront</span>
+            </button>
+          ) : (
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#8C7A6B] hover:text-[#4A2925] transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Storefront</span>
+            </Link>
+          )}
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
@@ -153,7 +165,7 @@ export default function CategoryProductsPage({
       </div>
 
       {/* Main Filter & Products Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 sm:px-12 py-10">
+      <div className="max-w-7xl w-full mx-auto px-6 sm:px-12 py-10">
         {/* Controls Bar */}
         <div className="bg-white p-4 rounded-xl border border-[#EDE5D5] shadow-xs mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Search Input inside Category */}
@@ -169,7 +181,7 @@ export default function CategoryProductsPage({
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-2.5 text-xs text-[#8C7A6B] hover:text-[#4A2925]"
+                className="absolute right-2.5 top-2.5 text-xs text-[#8C7A6B] hover:text-[#4A2925] cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -185,7 +197,7 @@ export default function CategoryProductsPage({
               <button
                 key={sz}
                 onClick={() => setSelectedSize(selectedSize === sz ? null : sz)}
-                className={`px-3 py-1 rounded-md text-xs font-semibold border transition ${
+                className={`px-3 py-1 rounded-md text-xs font-semibold border transition cursor-pointer ${
                   selectedSize === sz
                     ? "bg-[#4A2925] text-white border-[#4A2925]"
                     : "bg-[#F7F2EA] text-[#4A2925] border-[#EDE5D5] hover:border-[#4A2925]"
@@ -238,7 +250,7 @@ export default function CategoryProductsPage({
                 setSelectedSize(null);
                 setMaxPrice(10000);
               }}
-              className="px-5 py-2 bg-[#4A2925] text-white text-xs font-semibold rounded-full uppercase hover:bg-[#3D211E] transition-colors"
+              className="px-5 py-2 bg-[#4A2925] text-white text-xs font-semibold rounded-full uppercase hover:bg-[#3D211E] transition-colors cursor-pointer"
             >
               Reset Filters
             </button>
@@ -246,24 +258,18 @@ export default function CategoryProductsPage({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredAndSortedProducts.map((prod) => (
-               <ProductCard
-                 key={prod.id}
-                 product={prod}
-                 isWishlisted={wishlist.includes(prod.id)}
-                 onToggleWishlist={handleToggleWishlist}
-                 onAddToCart={addToCart}
-                 onSelectProduct={onSelectProduct}
-               />
+              <ProductCard
+                key={prod.id}
+                product={prod}
+                isWishlisted={wishlist.includes(prod.id)}
+                onToggleWishlist={() => handleToggleWishlist(prod.id)}
+                onAddToCart={() => handleAddToCart(prod)}
+                onSelectProduct={handleProductClick}
+              />
             ))}
           </div>
         )}
-      </main>
-      <Footer />
-      <AuthModal
-        isOpen={isAuthOpen}
-        onClose={() => setIsAuthOpen(false)}
-        initialMode={authMode}
-      />
+      </div>
     </div>
   );
 }

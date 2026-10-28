@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { getCategoriesApi } from "../../services/api";
 
@@ -24,6 +25,7 @@ const CATEGORY_GRADIENTS = [
 ];
 
 export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,6 +48,14 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
   if (!isLoading && categories.length === 0) {
     return null;
   }
+
+  const handleCategoryClick = (slug: string) => {
+    if (onSelectCategory) {
+      onSelectCategory(slug);
+    } else {
+      navigate(`/category/${slug}`);
+    }
+  };
 
   return (
     <section className="w-full bg-[#F7F2EA] py-20 px-6 sm:px-10 lg:px-16 border-t border-[#EDE5D5] overflow-hidden">
@@ -89,7 +99,7 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
               return (
                 <div
                   key={cat.id}
-                  onClick={() => onSelectCategory?.(cat.slug)}
+                  onClick={() => handleCategoryClick(cat.slug)}
                   className={`group relative cursor-pointer overflow-hidden rounded-2xl bg-[#EDE5D5] shadow-sm hover:shadow-xl transition-all duration-500 ${
                     isLargeCard
                       ? "md:col-span-2 md:row-span-2"

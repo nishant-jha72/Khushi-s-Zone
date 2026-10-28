@@ -1,82 +1,43 @@
-import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import ScrollToTop from "./components/layout/ScrollToTop";
+import Layout from "./components/layout/Layout";
 import HomePage from "./pages/HomePage";
+import CategoryPage from "./pages/CategoryPage";
+import ProductDetailsPage from "./pages/ProductDetailsPage";
+import TrackOrderPage from "./pages/TrackOrderPage";
+import ContactPage from "./pages/ContactPage";
 import MyAccountPage from "./pages/MyAccountPage";
 import { AdminPage } from "./pages/admin/AdminPage";
-import CategoryProductsPage from "./pages/CategoryProductsPage";
-import ProductDetailsPage from "./pages/ProductDetailsPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
-  const [view, setView] = useState<"home" | "category" | "product" | "account" | "admin">("home");
-  const [selectedCategory, setSelectedCategory] = useState<string>("dresses");
-  const [selectedProductId, setSelectedProductId] = useState<string | number>("");
-  const [accountTab, setAccountTab] = useState<string>("profile");
-
-  const openAccount = (tab: string = "profile") => {
-    setAccountTab(tab);
-    setView("account");
-  };
-
-  const openAdmin = () => {
-    setView("admin");
-  };
-
-  const openCategory = (slug: string) => {
-    setSelectedCategory(slug);
-    setView("category");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const openProduct = (productId: string | number) => {
-    setSelectedProductId(productId);
-    setView("product");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  if (view === "account") {
-    return (
-      <MyAccountPage
-        defaultTab={accountTab}
-        onBackToHome={() => setView("home")}
-      />
-    );
-  }
-
-  if (view === "admin") {
-    return <AdminPage onBackToHome={() => setView("home")} />;
-  }
-
-  if (view === "category") {
-    return (
-      <CategoryProductsPage
-        categorySlug={selectedCategory}
-        onBackToHome={() => setView("home")}
-        onSelectProduct={openProduct}
-        onOpenAccount={openAccount}
-        onOpenAdmin={openAdmin}
-        onSelectCategory={openCategory}
-      />
-    );
-  }
-
-  if (view === "product") {
-    return (
-      <ProductDetailsPage
-        productId={selectedProductId}
-        onBack={() => setView("category")}
-        onOpenAccount={openAccount}
-        onOpenAdmin={openAdmin}
-        onSelectCategory={openCategory}
-      />
-    );
-  }
-
   return (
-    <HomePage
-      onOpenAccount={openAccount}
-      onOpenAdmin={openAdmin}
-      onSelectCategory={openCategory}
-      onSelectProduct={openProduct}
-    />
+    <BrowserRouter>
+      <ScrollToTop />
+      <Routes>
+        {/* Main Customer Layout with persistent Header, Footer, and Drawers */}
+        <Route element={<Layout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route
+            path="/category"
+            element={<Navigate to="/category/dresses" replace />}
+          />
+          <Route
+            path="/shop"
+            element={<Navigate to="/category/dresses" replace />}
+          />
+          <Route path="/product/:id" element={<ProductDetailsPage />} />
+          <Route path="/track" element={<TrackOrderPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/account" element={<MyAccountPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+
+        {/* Dedicated Admin Portal Route */}
+        <Route path="/admin" element={<AdminPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
