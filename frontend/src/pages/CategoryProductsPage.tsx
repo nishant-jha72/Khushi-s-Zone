@@ -24,7 +24,13 @@ export default function CategoryProductsPage({
   onOpenAdmin,
   onSelectCategory,
 }: CategoryProductsPageProps) {
-  const { isAuthenticated, wishlist, addToCart, toggleWishlist, totalCartCount } = useAuth();
+  const {
+    isAuthenticated,
+    wishlist,
+    addToCart,
+    toggleWishlist,
+    totalCartCount,
+  } = useAuth();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
@@ -108,21 +114,29 @@ export default function CategoryProductsPage({
 
   return (
     <div className="min-h-screen bg-[#F7F2EA] text-[#4A2925] font-sans antialiased flex flex-col">
-       <Header
-         wishlistCount={wishlist.length}
-         cartCount={totalCartCount}
-         searchQuery={search}
-         setSearchQuery={setSearch}
-         onOpenCart={() => requireAuth(() => {/* cart UI not present on this page */})}
-         onOpenWishlist={() => requireAuth(() => {/* wishlist UI not present on this page */})}
-         onOpenLogin={() => {
-           setAuthMode("login");
-           setIsAuthOpen(true);
-         }}
-         onOpenAccount={onOpenAccount}
-         onOpenAdmin={onOpenAdmin}
-         onSelectCategory={onSelectCategory}
-       />
+      <Header
+        wishlistCount={wishlist.length}
+        cartCount={totalCartCount}
+        searchQuery={search}
+        setSearchQuery={setSearch}
+        onOpenCart={() =>
+          requireAuth(() => {
+            useAuth();
+          })
+        }
+        onOpenWishlist={() =>
+          requireAuth(() => {
+            useAuth();
+          })
+        }
+        onOpenLogin={() => {
+          setAuthMode("login");
+          setIsAuthOpen(true);
+        }}
+        onOpenAccount={onOpenAccount}
+        onOpenAdmin={onOpenAdmin}
+        onSelectCategory={onSelectCategory}
+      />
       {/* Hero Banner for Category */}
       <div className="bg-[#EDE5D5] py-5 px-4 sm:px-8 border-b border-[#D9CEB9]">
         <div className="max-w-5xl mx-auto space-y-2">
@@ -219,7 +233,7 @@ export default function CategoryProductsPage({
           <div className="py-24 text-center space-y-3">
             <div className="w-8 h-8 border-2 border-[#4A2925] border-t-transparent rounded-full animate-spin mx-auto" />
             <p className="text-xs text-[#8C7A6B] font-medium">
-              Fetching catalog from database...
+              Fetching catalog for {categoryTitle}...
             </p>
           </div>
         ) : filteredAndSortedProducts.length === 0 ? (
@@ -246,14 +260,14 @@ export default function CategoryProductsPage({
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {filteredAndSortedProducts.map((prod) => (
-               <ProductCard
-                 key={prod.id}
-                 product={prod}
-                 isWishlisted={wishlist.includes(prod.id)}
-                 onToggleWishlist={handleToggleWishlist}
-                 onAddToCart={addToCart}
-                 onSelectProduct={onSelectProduct}
-               />
+              <ProductCard
+                key={prod.id}
+                product={prod}
+                isWishlisted={wishlist.includes(prod.id)}
+                onToggleWishlist={handleToggleWishlist}
+                onAddToCart={addToCart}
+                onSelectProduct={onSelectProduct}
+              />
             ))}
           </div>
         )}

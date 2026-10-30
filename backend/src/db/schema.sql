@@ -130,6 +130,14 @@ CREATE TABLE IF NOT EXISTS item_variants (
   CONSTRAINT unique_item_color_size UNIQUE(item_id, color_id, size)
 );
 
+-- Newsletter Subscribers Table
+CREATE TABLE IF NOT EXISTS newsletters (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    is_active BOOLEAN DEFAULT TRUE,
+    subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    unsubscribed_at TIMESTAMP NULL DEFAULT NULL
+);
 -- ─── Indexes ─────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_item_colors_item_id       ON item_colors(item_id);
 CREATE INDEX IF NOT EXISTS idx_item_variants_item_id     ON item_variants(item_id);

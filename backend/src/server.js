@@ -4,6 +4,8 @@ const dotenv = require("dotenv");
 const { initializeDatabase } = require("./config/db");
 const salesReport =
   require("./services/dailySalesData").startDailySalesReportJob();
+const newsletterCron =
+  require("./services/dailySalesData").initNewsletterCron();
 dotenv.config();
 
 const authRoutes = require("./routes/authRoutes");

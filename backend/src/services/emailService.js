@@ -1,5 +1,7 @@
 const nodemailer = require("nodemailer");
 const { getDailySalesData } = require("../controllers/product.controller");
+const { getLatestProducts } = require("../controllers/newsletter.controller");
+
 // Create transport or fallback test transport
 let transporter = null;
 
@@ -60,7 +62,6 @@ async function getTransporter() {
   }
   return transporter;
 }
-
 
 function reportTable(headers, rows, emptyMsg) {
   if (!rows.length)
@@ -239,8 +240,56 @@ async function sendWelcomeConfirmationEmail(email, name) {
   }
 }
 
+async function sendNewsletterEmail(subscriber) {
+  // 1. Fetch latest products for the digest
+  const latestProducts = await getLatestProducts();
+  const productListHtml = latestProducts
+    .map(
+      (product) => `
+    <div style="margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+        <h4 style="margin: 0 0 5px 0;">${product.name}</h4>
+        <p style="margin: 0 0 5px 0; color: #666;">Price: $${product.price}</p>
+        <a href="${process.env.FRONTEND_URL}/products/${product.id}" style="color: #007bff; text-decoration: none;">View Product</a>
+    </div>
+`,
+    )
+    .join("");
+
+  const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px;">
+            <h2 style="color: #333;">Your Weekly Digest & Exclusive Deals</h2>
+            <p>Hi there,</p>
+            <p>Here is what is new this week at KhushiZone:</p>
+            ${productListHtml}
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #999;">
+                You received this email because you subscribed to our newsletter. 
+                <a href="${process.env.FRONTEND_URL}/unsubscribe?email=${encodeURIComponent(subscriber.email)}" style="color: #999;">Unsubscribe</a>
+            </p>
+        </div>
+    `;
+
+  // 3. Send email via active transporter
+  const activeTransporter = await getTransporter();
+  if (!activeTransporter) {
+    console.log(
+      `ℹ️  No mail transporter; newsletter not sent to ${subscriber.email}.`,
+    );
+    return;
+  }
+
+  await activeTransporter.sendMail({
+    from: '"Khushi\'s Zone" <noreply@khushizone.com>',
+    to: subscriber.email,
+    subject: "Your Weekly Digest & Exclusive Deals",
+    html: emailHtml,
+  });
+  console.log(`✉️  [Email Dispatch] Newsletter sent to ${subscriber.email}`);
+}
+
 module.exports = {
   sendVerificationEmail,
   sendWelcomeConfirmationEmail,
   sendDailySalesReportEmail,
+  sendNewsletterEmail,
 };
