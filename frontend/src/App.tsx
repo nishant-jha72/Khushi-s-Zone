@@ -9,6 +9,8 @@ import ContactPage from "./pages/ContactPage";
 import MyAccountPage from "./pages/MyAccountPage";
 import { AdminPage } from "./pages/admin/AdminPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import CheckoutPage from "./components/checkout/CheckoutPage";
+import OrdersPage from "./order/orders";
 
 function App() {
   return (
@@ -31,6 +33,8 @@ function App() {
           <Route path="/track" element={<TrackOrderPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/account" element={<MyAccountPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 

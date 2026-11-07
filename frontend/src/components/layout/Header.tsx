@@ -287,11 +287,14 @@ export default function Header({
                           <span>Addresses</span>
                         </button>
                         <button
-                          onClick={() => handleAccountNavigation("orders")}
+                          onClick={() => {
+                            setIsUserDropdownOpen(false);
+                            navigate("/orders");
+                          }}
                           className="w-full flex items-center space-x-2.5 px-4 py-2 text-xs text-[#4A2925] hover:bg-[#EDE5D5]/60 transition-colors text-left font-medium"
                         >
                           <Package className="w-4 h-4 text-[#8C7A6B]" />
-                          <span>Past Orders</span>
+                          <span>My Orders</span>
                         </button>
                         {user.isAdmin && (
                           <button
@@ -499,11 +502,14 @@ export default function Header({
                       <span>ADDRESSES</span>
                     </button>
                     <button
-                      onClick={() => handleAccountNavigation("orders")}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate("/orders");
+                      }}
                       className="w-full flex items-center space-x-2 py-2.5 border-b border-[#EDE5D5]/60 hover:text-[#6E493F]"
                     >
                       <Package className="w-4 h-4 text-[#8C7A6B]" />
-                      <span>PAST ORDERS</span>
+                      <span>MY ORDERS</span>
                     </button>
                     {user?.isAdmin && (
                       <button

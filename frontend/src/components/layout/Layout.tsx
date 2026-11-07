@@ -3,7 +3,6 @@ import { Outlet, useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
 import AuthModal from "../auth/AuthModal";
-import CheckoutModal from "../checkout/CheckoutModal";
 import { useAuth } from "../../context/AuthContext";
 import { X, ShoppingBag, Heart } from "lucide-react";
 import type { Product } from "../../services/api";
@@ -28,7 +27,6 @@ export default function Layout() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [verifyNotice, setVerifyNotice] = useState<string | null>(null);
 
@@ -112,9 +110,11 @@ export default function Layout() {
     setAuthMode(mode);
     setIsAuthOpen(true);
   };
+
+  // Navigates directly to /checkout route and closes drawer
   const openCheckout = () => {
     setIsCartOpen(false);
-    setIsCheckoutOpen(true);
+    navigate("/checkout");
   };
 
   const contextValue: LayoutContextType = {
@@ -327,16 +327,6 @@ export default function Layout() {
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         initialMode={authMode}
-      />
-
-      {/* Checkout Modal */}
-      <CheckoutModal
-        isOpen={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
-        onOrderPlaced={() => {
-          setIsCheckoutOpen(false);
-          navigate("/account?tab=orders");
-        }}
       />
     </div>
   );
