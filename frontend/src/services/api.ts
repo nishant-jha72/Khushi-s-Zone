@@ -267,3 +267,7 @@ export async function getOrderByIdApi(orderId: string | number) {
 export async function getOrderTrackingApi(orderId: string | number) {
   return apiFetch(`/orders/${orderId}/tracking`);
 }
+
+export async function getUserOrdersApi() {
+  return apiFetch("/user/orders");
+}

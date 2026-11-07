@@ -24,17 +24,34 @@ interface MyAccountPageProps {
   defaultTab?: string;
 }
 
-function formatShippingAddress(raw: string): string {
+function formatShippingAddress(raw: any): string {
+  if (!raw) return "";
+  if (typeof raw === "object") {
+    const fullName = raw.fullName || raw.full_name || raw.name;
+    const line1 = raw.addressLine1 || raw.address_line1;
+    const city = raw.city;
+    const state = raw.state;
+    const postalCode = raw.postalCode || raw.postal_code || raw.pincode;
+    return [
+      fullName,
+      line1,
+      city,
+      state && postalCode ? `${state} – ${postalCode}` : state || postalCode,
+    ]
+      .filter(Boolean)
+      .join(", ");
+  }
   try {
     const parsed = JSON.parse(raw);
-    if (parsed?.addressLine1) {
+    const line1 = parsed?.addressLine1 || parsed?.address_line1;
+    if (line1) {
       return [
-        parsed.fullName,
-        parsed.addressLine1,
+        parsed.fullName || parsed.full_name || parsed.name,
+        line1,
         parsed.city,
-        parsed.state && parsed.postalCode
-          ? `${parsed.state} – ${parsed.postalCode}`
-          : parsed.state,
+        parsed.state && (parsed.postalCode || parsed.postal_code)
+          ? `${parsed.state} – ${parsed.postalCode || parsed.postal_code}`
+          : parsed.state || parsed.postalCode || parsed.postal_code,
       ]
         .filter(Boolean)
         .join(", ");
@@ -42,7 +59,7 @@ function formatShippingAddress(raw: string): string {
   } catch {
     // Older orders stored a plain-text address
   }
-  return raw;
+  return String(raw);
 }
 
 export default function MyAccountPage({
