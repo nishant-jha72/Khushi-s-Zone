@@ -140,3 +140,79 @@ export async function upsertVariantApi(productId: number, data: VariantPayload) 
 export async function getCategoriesApi() {
   return adminFetch("/categories");
 }
+
+// ─── Promo Codes ─────────────────────────────────────────────────────────────
+
+export interface AdminPromoCode {
+  id: number;
+  code: string;
+  discountType: "FIXED" | "PERCENTAGE";
+  discountValue: number;
+  maxDiscount: number | null;
+  minOrderAmount: number;
+  usageLimit: number | null;
+  usageCount: number;
+  actualRedemptionsCount?: number;
+  totalDiscountGiven?: number;
+  perUserLimit: number;
+  startDate: string;
+  expiryDate: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreatePromoPayload {
+  code: string;
+  discountType: "FIXED" | "PERCENTAGE";
+  discountValue: number;
+  maxDiscount?: number | null;
+  minOrderAmount?: number;
+  usageLimit?: number | null;
+  perUserLimit?: number;
+  startDate?: string;
+  expiryDate: string;
+  isActive?: boolean;
+}
+
+export async function getAllPromosAdminApi(): Promise<{
+  success: boolean;
+  promos: AdminPromoCode[];
+  total: number;
+}> {
+  return adminFetch("/admin/promo");
+}
+
+export async function getPromoByIdAdminApi(id: number) {
+  return adminFetch(`/admin/promo/${id}`);
+}
+
+export async function createPromoAdminApi(data: CreatePromoPayload) {
+  return adminFetch("/admin/promo", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePromoAdminApi(
+  id: number,
+  data: Partial<CreatePromoPayload>,
+) {
+  return adminFetch(`/admin/promo/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function setPromoStatusAdminApi(id: number, isActive: boolean) {
+  return adminFetch(`/admin/promo/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  });
+}
+
+export async function deletePromoAdminApi(id: number) {
+  return adminFetch(`/admin/promo/${id}`, {
+    method: "DELETE",
+  });
+}

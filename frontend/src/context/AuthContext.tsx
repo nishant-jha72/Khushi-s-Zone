@@ -76,6 +76,7 @@ interface AuthContextType {
     }>;
     shippingAddress: string;
     paymentMethod: string;
+    promoCode?: string;
   }) => Promise<any>;
 }
 
@@ -218,6 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }>;
     shippingAddress: string;
     paymentMethod: string;
+    promoCode?: string;
   }) => {
     if (!user) {
       throw new Error("Please sign in to place an order.");

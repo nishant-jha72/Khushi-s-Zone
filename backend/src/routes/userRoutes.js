@@ -212,7 +212,7 @@ router.get("/orders", authenticateToken, async (req, res) => {
     const userId = req.user.userId;
 
     const ordersRes = await query(
-      `SELECT id, order_number, total_amount, subtotal, delivery_fee, discount_amount,
+      `SELECT id, order_number, total_amount, subtotal, delivery_fee, discount_amount, promo_code,
               status, order_status, payment_method, payment_status, shipping_address,
               customer_notes, created_at, updated_at
        FROM orders
@@ -257,6 +257,7 @@ router.get("/orders", authenticateToken, async (req, res) => {
         subtotal: order.subtotal ? parseFloat(order.subtotal) : parseFloat(order.total_amount || 0),
         deliveryFee: parseFloat(order.delivery_fee || 0),
         discountAmount: parseFloat(order.discount_amount || 0),
+        promoCode: order.promo_code || null,
         status: displayStatus,
         order_status: rawStatus,
         rawStatus,

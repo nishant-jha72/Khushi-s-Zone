@@ -16,6 +16,8 @@ const cartRoutes = require("./routes/cartRoutes");
 const wishlistRoutes = require("./routes/wishlistRoutes");
 const productRoutes = require("./routes/productRoutes");
 const productMediaRoutes = require("./routes/productMedia.routes");
+const promoRoutes = require("./routes/promoRoutes");
+const adminPromoRoutes = require("./routes/adminPromoRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +35,8 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api", productRoutes);
 app.use("/api", productMediaRoutes);
+app.use("/api/promo", promoRoutes);
+app.use("/api/admin/promo", adminPromoRoutes);
 
 // Global Error Handler
 app.use((err, req, res, next) => {

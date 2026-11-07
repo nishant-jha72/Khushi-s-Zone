@@ -73,11 +73,20 @@ CREATE TABLE IF NOT EXISTS orders (
   id SERIAL PRIMARY KEY,
   order_number VARCHAR(50) UNIQUE NOT NULL,
   user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  address_id INT REFERENCES user_address(id) ON DELETE SET NULL,
   total_amount NUMERIC(10,2) NOT NULL,
+  subtotal NUMERIC(10,2),
+  delivery_fee NUMERIC(10,2) DEFAULT 0,
+  discount_amount NUMERIC(10,2) DEFAULT 0,
+  promo_code_id INT REFERENCES promo_codes(id) ON DELETE SET NULL,
+  promo_code VARCHAR(50),
   status VARCHAR(50) DEFAULT 'Processing',
+  order_status VARCHAR(50) DEFAULT 'pending',
   payment_method VARCHAR(50) DEFAULT 'UPI / Card',
   payment_status VARCHAR(50) DEFAULT 'Paid',
   shipping_address TEXT NOT NULL,
+  customer_notes TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -170,6 +179,39 @@ CREATE TABLE IF NOT EXISTS user_address (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS promo_codes (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(50) UNIQUE NOT NULL,
+  discount_type VARCHAR(20) NOT NULL CHECK (discount_type IN ('FIXED', 'PERCENTAGE')),
+  discount_value NUMERIC(10,2) NOT NULL CHECK (discount_value > 0),
+  max_discount NUMERIC(10,2) CHECK (max_discount IS NULL OR max_discount > 0),
+  min_order_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00 CHECK (min_order_amount >= 0),
+  usage_limit INTEGER CHECK (usage_limit IS NULL OR usage_limit >= 0),
+  usage_count INTEGER NOT NULL DEFAULT 0 CHECK (usage_count >= 0),
+  per_user_limit INTEGER NOT NULL DEFAULT 1 CHECK (per_user_limit > 0),
+  start_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  expiry_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT check_percentage_max CHECK (discount_type != 'PERCENTAGE' OR discount_value <= 100)
+);
+
+CREATE TABLE IF NOT EXISTS promo_code_usage (
+  id SERIAL PRIMARY KEY,
+  promo_code_id INTEGER NOT NULL REFERENCES promo_codes(id) ON DELETE RESTRICT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  discount_amount NUMERIC(10,2) NOT NULL CHECK (discount_amount >= 0),
+  used_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_promo_user_order UNIQUE (promo_code_id, user_id, order_id),
+  CONSTRAINT unique_promo_order UNIQUE (order_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_promo_codes_code ON promo_codes (code);
+CREATE INDEX IF NOT EXISTS idx_promo_codes_active ON promo_codes (is_active, start_date, expiry_date);
+CREATE INDEX IF NOT EXISTS idx_promo_code_usage_promo_user ON promo_code_usage (promo_code_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_promo_code_usage_order ON promo_code_usage (order_id);
 
 CREATE INDEX IF NOT EXISTS idx_user_address_user_id ON user_address(user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_address_one_default

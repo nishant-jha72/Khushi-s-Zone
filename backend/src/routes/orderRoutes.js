@@ -14,7 +14,8 @@ const router = express.Router();
 router.get("/", authenticateToken, async (req, res) => {
   try {
     const ordersRes = await query(
-      `SELECT id, order_number, total_amount, order_status as status, payment_method, payment_status, shipping_address, created_at
+      `SELECT id, order_number, total_amount, subtotal, delivery_fee, discount_amount, promo_code,
+              order_status as status, payment_method, payment_status, shipping_address, created_at
        FROM orders
        WHERE user_id = $1
        ORDER BY created_at DESC;`,
@@ -37,6 +38,9 @@ router.get("/", authenticateToken, async (req, res) => {
         id: order.id,
         orderNumber: order.order_number,
         totalAmount: parseFloat(order.total_amount),
+        subtotal: parseFloat(order.subtotal || order.total_amount),
+        discountAmount: parseFloat(order.discount_amount || 0),
+        promoCode: order.promo_code || null,
         status: order.status || order.order_status,
         paymentMethod: order.payment_method,
         paymentStatus: order.payment_status,
@@ -254,8 +258,14 @@ router.get("/:orderId/tracking", authenticateToken, async (req, res) => {
  */
 router.post("/", authenticateToken, async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod, addressId, customerNotes } =
-      req.body;
+    const {
+      items,
+      shippingAddress,
+      paymentMethod,
+      addressId,
+      customerNotes,
+      promoCode,
+    } = req.body;
 
     if (!items || items.length === 0) {
       return res
@@ -279,6 +289,7 @@ router.post("/", authenticateToken, async (req, res) => {
       items,
       paymentMethod: paymentMethod || "COD",
       customerNotes,
+      promoCode,
     });
     try {
       const orderFullRes = await query(
@@ -336,6 +347,10 @@ router.post("/", authenticateToken, async (req, res) => {
       message: "Order placed successfully!",
       orderNumber: result.orderNumber,
       orderId: result.orderId,
+      totalAmount: result.totalAmount,
+      subtotal: result.subtotal,
+      discountAmount: result.discountAmount,
+      promoCode: result.promoCode,
     });
   } catch (error) {
     console.error("Error creating order:", error);

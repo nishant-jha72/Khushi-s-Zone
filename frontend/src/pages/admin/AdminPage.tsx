@@ -8,6 +8,7 @@ import {
 } from "../../services/adminApi";
 import { ProductTable, type ProductItem } from "../../components/admin/ProductTable";
 import { AddEditProductForm } from "../../components/admin/AddEditProductForm";
+import { PromoManagement } from "../../components/admin/PromoManagement";
 
 interface AdminPageProps {
   onBackToHome?: () => void;
@@ -17,7 +18,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
   const navigate = useNavigate();
   const handleBack = onBackToHome || (() => navigate("/"));
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"products" | "add_product">("products");
+  const [activeTab, setActiveTab] = useState<"products" | "add_product" | "promos">("products");
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [editingProduct, setEditingProduct] = useState<ProductItem | null>(null);
@@ -160,7 +161,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => {
                 setEditingProduct(null);
@@ -187,6 +188,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
             >
               + Add New Product
             </button>
+            <button
+              onClick={() => {
+                setEditingProduct(null);
+                setActiveTab("promos");
+              }}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition ${
+                activeTab === "promos"
+                  ? "bg-purple-700 text-white"
+                  : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+              }`}
+            >
+              🎟️ Promo Codes
+            </button>
           </div>
         </div>
 
@@ -199,7 +213,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
             onDelete={handleDelete}
             onToggleStatus={handleToggleStatus}
           />
-        ) : (
+        ) : activeTab === "add_product" ? (
           <AddEditProductForm
             initialProduct={editingProduct}
             onSuccess={handleFormSuccess}
@@ -208,6 +222,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({ onBackToHome }) => {
               setActiveTab("products");
             }}
           />
+        ) : (
+          <PromoManagement />
         )}
       </div>
     </div>

@@ -1,4 +1,5 @@
 const { pool } = require("../config/db");
+const { validateAndLockPromoInTransaction } = require("./promoService");
 
 function generateOrderNumber() {
   const year = new Date().getFullYear();
@@ -12,6 +13,7 @@ async function createOrder({
   items,
   paymentMethod,
   customerNotes,
+  promoCode,
 }) {
   const client = await pool.connect();
 
@@ -23,9 +25,6 @@ async function createOrder({
       "SELECT * FROM user_address WHERE id = $1 AND user_id = $2",
       [addressId, userId],
     );
-    console.log("AddresID , UserID:", addressId, userId);
-
-    console.log("Address validation result:", addressRes.rows);
 
     if (addressRes.rows.length === 0) {
       throw new Error("Invalid address");
@@ -77,6 +76,8 @@ async function createOrder({
       });
     }
 
+    subtotal = Math.round(subtotal * 100) / 100;
+
     // Check COD eligibility for all manufacturers
     if (paymentMethod === "COD") {
       for (const oi of orderItemsData) {
@@ -86,9 +87,27 @@ async function createOrder({
       }
     }
 
+    // Validate and apply promo code in transaction if provided
+    let discountAmount = 0;
+    let promoCodeId = null;
+    let appliedPromoCode = null;
+
+    if (promoCode && typeof promoCode === "string" && promoCode.trim()) {
+      const promoResult = await validateAndLockPromoInTransaction(client, {
+        code: promoCode,
+        userId,
+        subtotal,
+      });
+      discountAmount = promoResult.discountAmount;
+      promoCodeId = promoResult.promo.id;
+      appliedPromoCode = promoResult.promo.code;
+    }
+
     const deliveryFee = 0;
-    const discountAmount = 0;
-    const totalAmount = subtotal + deliveryFee - discountAmount;
+    const totalAmount = Math.max(
+      0,
+      Math.round((subtotal + deliveryFee - discountAmount) * 100) / 100,
+    );
 
     const orderNumber = generateOrderNumber();
 
@@ -96,8 +115,9 @@ async function createOrder({
     const orderRes = await client.query(
       `INSERT INTO orders (
         order_number, user_id, address_id, total_amount, subtotal, delivery_fee, discount_amount,
-        status, order_status, payment_method, payment_status, shipping_address, customer_notes, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, CURRENT_TIMESTAMP)
+        promo_code_id, promo_code, status, order_status, payment_method, payment_status,
+        shipping_address, customer_notes, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
       RETURNING *`,
       [
         orderNumber,
@@ -107,6 +127,8 @@ async function createOrder({
         subtotal,
         deliveryFee,
         discountAmount,
+        promoCodeId,
+        appliedPromoCode,
         paymentMethod === "COD" ? "Processing" : "Pending",
         paymentMethod === "COD" ? "confirmed" : "pending",
         paymentMethod,
@@ -117,6 +139,15 @@ async function createOrder({
     );
 
     const orderId = orderRes.rows[0].id;
+
+    // Record promo code redemption in promo_code_usage
+    if (promoCodeId) {
+      await client.query(
+        `INSERT INTO promo_code_usage (promo_code_id, user_id, order_id, discount_amount)
+         VALUES ($1, $2, $3, $4)`,
+        [promoCodeId, userId, orderId, discountAmount],
+      );
+    }
 
     // Create order items with snapshots
     for (const oi of orderItemsData) {
@@ -165,6 +196,9 @@ async function createOrder({
       orderId,
       orderNumber,
       totalAmount,
+      subtotal,
+      discountAmount,
+      promoCode: appliedPromoCode,
       status: orderRes.rows[0].order_status,
       paymentMethod,
       paymentStatus: orderRes.rows[0].payment_status,
