@@ -276,3 +276,44 @@ export async function getUserOrdersApi() {
 export async function getLatestProductsApi(limit: number = 10) {
   return apiFetch(`/products/latest?limit=${limit}`);
 }
+
+export interface PromoCode {
+  id: number;
+  code: string;
+  description?: string;
+  discountType: "FIXED" | "PERCENTAGE";
+  discountValue: number;
+  maxDiscount?: number | null;
+  minOrderAmount: number;
+  expiryDate?: string;
+  isActive?: boolean;
+}
+
+export interface PromoValidationResponse {
+  success: boolean;
+  message: string;
+  promo: PromoCode;
+  calculation: {
+    subtotal: number;
+    discountAmount: number;
+    finalAmount: number;
+    [key: string]: any;
+  };
+}
+
+export async function validatePromoApi(
+  code: string,
+  cartItems: any[],
+): Promise<PromoValidationResponse> {
+  return apiFetch("/promo/validate", {
+    method: "POST",
+    body: JSON.stringify({ code, cartItems }),
+  });
+}
+
+export async function getAvailablePromosApi(): Promise<{
+  success: boolean;
+  promos: PromoCode[];
+}> {
+  return apiFetch("/promo/available");
+}

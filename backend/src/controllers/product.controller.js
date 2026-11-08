@@ -530,8 +530,6 @@ async function setVariantStatus(req, res) {
   }
 }
 
-const { getCachedData } = require("../utils/cache");
-
 async function getLatestProducts(req, res) {
   try {
     const limit = 10;
