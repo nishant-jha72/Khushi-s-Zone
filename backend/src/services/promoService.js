@@ -127,8 +127,21 @@ async function validatePromoCode({
   if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
     throw new Error("Cart is empty");
   }
+  // Resolve the DB item id from each cart entry. The frontend sends a nested
+  // shape ({ product: { itemId/id, ... } }), so check both top-level and
+  // nested product fields to remain robust across cart payloads.
+  const resolveItemId = (item) => {
+    const product = item.product || {};
+    return (
+      item.itemId ||
+      item.id ||
+      product.itemId ||
+      product.id
+    );
+  };
+
   const itemIds = cartItems
-    .map((item) => parseInt(item.itemId || item.productId || item.id, 10))
+    .map((item) => parseInt(resolveItemId(item), 10))
     .filter((id) => !isNaN(id) && id > 0);
 
   if (itemIds.length === 0) {
@@ -154,7 +167,7 @@ async function validatePromoCode({
 
   let subtotal = 0;
   for (const ci of cartItems) {
-    const id = parseInt(ci.itemId || ci.productId || ci.id, 10);
+    const id = parseInt(resolveItemId(ci), 10);
     const price = itemPriceMap.get(id);
     if (price === undefined) {
       throw new Error("One or more items in your cart could not be verified");
