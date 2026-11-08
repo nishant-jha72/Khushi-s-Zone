@@ -23,34 +23,66 @@ export default function HomePage({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const layout = useLayout();
-  const {
-    isAuthenticated,
-    wishlist,
-    addToCart,
-    toggleWishlist,
-  } = useAuth();
+  const { isAuthenticated, wishlist, addToCart, toggleWishlist } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Active search query from layout header or URL param
-  const activeSearchQuery = layout?.searchQuery ?? searchParams.get("search") ?? "";
+  // Get initial search query from URL or layout
+  const urlSearchQuery = searchParams.get("search") || "";
+  const layoutSearchQuery = layout?.searchQuery ?? "";
 
+  // Local typing state to prevent the input from clearing while typing
+  const [searchInputValue, setSearchInputValue] = useState(
+    layoutSearchQuery || urlSearchQuery,
+  );
+
+  // Debounced query used for triggering the API request
+  const [debouncedSearchQuery, setDebouncedSearchQuery] =
+    useState(searchInputValue);
+
+  // Keep local input in sync if layout search changes externally
   useEffect(() => {
-    const urlSearch = searchParams.get("search");
-    if (urlSearch && layout?.setSearchQuery && layout.searchQuery !== urlSearch) {
-      layout.setSearchQuery(urlSearch);
+    if (
+      layout?.searchQuery !== undefined &&
+      layout.searchQuery !== searchInputValue
+    ) {
+      setSearchInputValue(layout.searchQuery);
     }
-  }, [searchParams, layout]);
+  }, [layout?.searchQuery]);
 
+  // Debounce input changes to update URL and trigger search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchInputValue);
+
+      // Update layout search query if available
+      if (layout?.setSearchQuery && layout.searchQuery !== searchInputValue) {
+        layout.setSearchQuery(searchInputValue);
+      }
+
+      // Update URL search params cleanly
+      const newParams = new URLSearchParams(searchParams);
+      if (searchInputValue.trim()) {
+        newParams.set("search", searchInputValue.trim());
+      } else {
+        newParams.delete("search");
+      }
+      setSearchParams(newParams, { replace: true });
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchInputValue]);
+
+  // Load products when category or debounced search query changes
   useEffect(() => {
     const loadProducts = async () => {
       setProductsLoading(true);
       try {
         const res = await getProductsApi(
           selectedCategory || undefined,
-          activeSearchQuery || undefined,
+          debouncedSearchQuery || undefined,
         );
         if (res.success && res.products) {
           setProducts(res.products);
@@ -62,7 +94,7 @@ export default function HomePage({
       }
     };
     loadProducts();
-  }, [selectedCategory, activeSearchQuery]);
+  }, [selectedCategory, debouncedSearchQuery]);
 
   const requireAuth = (action: () => void) => {
     if (!isAuthenticated) {
@@ -97,17 +129,11 @@ export default function HomePage({
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesSearch =
-        activeSearchQuery === "" ||
-        product.name.toLowerCase().includes(activeSearchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(activeSearchQuery.toLowerCase());
-
       const matchesCategory =
         !selectedCategory || product.category === selectedCategory;
-
-      return matchesSearch && matchesCategory;
+      return matchesCategory;
     });
-  }, [products, activeSearchQuery, selectedCategory]);
+  }, [products, selectedCategory]);
 
   const handleCategorySelection = (slug: string) => {
     if (onSelectCategory) {
@@ -127,21 +153,21 @@ export default function HomePage({
 
   const clearFilter = () => {
     setSelectedCategory(null);
+    setSearchInputValue("");
     layout?.setSearchQuery("");
-    if (searchParams.has("search")) {
-      searchParams.delete("search");
-      setSearchParams(searchParams);
-    }
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("search");
+    setSearchParams(newParams);
   };
 
   return (
     <div>
-      {(selectedCategory || activeSearchQuery) && (
+      {(selectedCategory || debouncedSearchQuery) && (
         <div className="bg-[#EDE5D5] py-3 px-6 text-center text-xs font-semibold tracking-wider text-[#4A2925] flex items-center justify-center space-x-3 border-b border-[#D9CEB9]">
           <span>
             FILTERING BY:{" "}
             {selectedCategory ? selectedCategory.toUpperCase() : ""}{" "}
-            {activeSearchQuery ? `"${activeSearchQuery}"` : ""}
+            {debouncedSearchQuery ? `"${debouncedSearchQuery}"` : ""}
           </span>
           <button
             onClick={clearFilter}

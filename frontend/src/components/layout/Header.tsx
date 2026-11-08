@@ -129,7 +129,8 @@ export default function Header({
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/search?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsMobileMenuOpen(false); // Close mobile menu if open
     }
   };
 

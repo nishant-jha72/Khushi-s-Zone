@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from "react-router-dom";
 import ScrollToTop from "./components/layout/ScrollToTop";
 import Layout from "./components/layout/Layout";
 import HomePage from "./pages/HomePage";
@@ -11,10 +17,13 @@ import { AdminPage } from "./pages/admin/AdminPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import CheckoutPage from "./components/checkout/CheckoutPage";
 import OrdersPage from "./order/orders";
+import SearchResultPage from "./components/products/SearchResultPage";
 
-function App() {
+function AppContent() {
+  const navigate = useNavigate();
+
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Routes>
         {/* Main Customer Layout with persistent Header, Footer, and Drawers */}
@@ -35,14 +44,30 @@ function App() {
           <Route path="/account" element={<MyAccountPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route
+            path="/search"
+            element={
+              <SearchResultPage
+                onSelectProduct={(productId) =>
+                  navigate(`/product/${productId}`)
+                }
+              />
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         {/* Dedicated Admin Portal Route */}
         <Route path="/admin" element={<AdminPage />} />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
