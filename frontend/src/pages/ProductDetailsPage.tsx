@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   RotateCcw,
   Check,
+  Share2,
 } from "lucide-react";
 import { useLayout } from "../components/layout/useLayout";
 
@@ -28,12 +29,7 @@ export default function ProductDetailsPage({
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const layout = useLayout();
-  const {
-    isAuthenticated,
-    wishlist,
-    toggleWishlist,
-    addToCart,
-  } = useAuth();
+  const { isAuthenticated, wishlist, toggleWishlist, addToCart } = useAuth();
 
   const effectiveProductId = propProductId || id || "";
 
@@ -43,6 +39,9 @@ export default function ProductDetailsPage({
   const [selectedSize, setSelectedSize] = useState<string>("M");
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [added, setAdded] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const productUrl = window.location.href;
 
   const requireAuth = (action: () => void) => {
     if (!isAuthenticated) {
@@ -61,6 +60,29 @@ export default function ProductDetailsPage({
         layout?.openAuth("login");
       }
     });
+  };
+
+  const handleShareClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Try using native browser share (works on mobile & modern browsers)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product?.name || "Khushi's Zone Product",
+          text: `Check out ${product?.name} on Khushi's Zone!`,
+          url: productUrl,
+        });
+        return;
+      } catch (err) {
+        console.log("Share dismissed or failed", err);
+      }
+    }
+
+    // Fallback: Copy link directly to clipboard
+    navigator.clipboard.writeText(productUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   useEffect(() => {
@@ -234,19 +256,40 @@ export default function ProductDetailsPage({
                 </span>
               )}
 
-              <button
-                onClick={() => handleToggleWishlist(product.id.toString())}
-                className="absolute top-4 right-4 p-3 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs text-[#4A2925] shadow-md transition hover:scale-110 cursor-pointer"
-                aria-label="Wishlist"
-              >
-                <Heart
-                  className={`w-5 h-5 ${
-                    isWishlisted
-                      ? "fill-[#4A2925] text-[#4A2925]"
-                      : "text-[#4A2925]"
-                  }`}
-                />
-              </button>
+              {/* Top Right Action Buttons (Wishlist & Share) */}
+              <div className="absolute top-4 right-4 flex flex-col gap-2">
+                <button
+                  onClick={() => handleToggleWishlist(product.id.toString())}
+                  className="p-3 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs text-[#4A2925] shadow-md transition hover:scale-110 cursor-pointer"
+                  aria-label="Wishlist"
+                >
+                  <Heart
+                    className={`w-5 h-5 ${
+                      isWishlisted
+                        ? "fill-[#4A2925] text-[#4A2925]"
+                        : "text-[#4A2925]"
+                    }`}
+                  />
+                </button>
+
+                <button
+                  onClick={handleShareClick}
+                  aria-label="Share product"
+                  title={copied ? "Link Copied!" : "Share Product"}
+                  className="p-3 rounded-full bg-white/80 hover:bg-white backdrop-blur-xs text-[#4A2925] shadow-md transition hover:scale-110 cursor-pointer relative"
+                >
+                  {copied ? (
+                    <Check className="w-5 h-5 text-emerald-700" />
+                  ) : (
+                    <Share2 className="w-5 h-5 text-[#4A2925]" />
+                  )}
+                  {copied && (
+                    <span className="absolute right-full mr-2 top-1/2 -translate-y-1/2 bg-[#4A2925] text-white text-[10px] px-2 py-0.5 rounded shadow-md whitespace-nowrap">
+                      Copied!
+                    </span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 

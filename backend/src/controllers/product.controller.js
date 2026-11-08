@@ -37,28 +37,50 @@ async function invalidateProductCaches(productId) {
  * GET /api/products
  * List active products with pagination & category filtering.
  */
+
 async function listProducts(req, res) {
   try {
-    const parsedPage = parseInt(req.query.page || "1", 10);
-    const parsedLimit = parseInt(req.query.limit || "20", 10);
+    // 1. Validate pagination
+    const parsedPage = Number.parseInt(req.query.page, 10);
+    const parsedLimit = Number.parseInt(req.query.limit, 10);
 
-    const page = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
+    const page =
+      Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-    const limit = Number.isFinite(parsedLimit)
-      ? Math.min(100, Math.max(1, parsedLimit))
-      : 20;
+    const limit =
+      Number.isSafeInteger(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 100)
+        : 20;
 
-    const categorySlug = req.query.category || req.query.categorySlug || "";
+    // 2. Normalize category
+    const categorySlug = String(
+      req.query.category || req.query.categorySlug || "",
+    )
+      .trim()
+      .toLowerCase();
 
-    const search = req.query.search || "";
+    // 3. Normalize search
+    const search = String(req.query.search || "")
+      .trim()
+      .replace(/\s+/g, " ");
 
+    // Optional: prevent excessively long search queries
+    if (search.length > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query cannot exceed 100 characters",
+      });
+    }
+
+    // 4. Generate consistent cache key
     const cacheKey = `products:list:${JSON.stringify({
       page,
       limit,
       categorySlug,
-      search,
+      search: search.toLowerCase(),
     })}`;
 
+    // 5. Fetch cached or database results
     const response = await getCachedData(
       cacheKey,
       async () => {
@@ -69,13 +91,14 @@ async function listProducts(req, res) {
           search,
         });
 
+        // 6. Transform database records
         const products = result.items.map((item) => ({
-          id: item.id.toString(),
+          id: String(item.id),
           itemId: item.id,
           name: item.name,
-          category: item.category.slug || "dresses",
-          categoryId: item.category.id,
-          categoryName: item.category.name,
+          category: item.category?.slug || "dresses",
+          categoryId: item.category?.id,
+          categoryName: item.category?.name,
           description: item.description,
           price: item.price,
           originalPrice: item.originalPrice,
@@ -83,7 +106,7 @@ async function listProducts(req, res) {
           type: item.type,
           image: item.image,
           rating: item.rating,
-          badge: item.isBestseller ? "BESTSELLER" : undefined,
+          badge: item.isBestseller ? "BESTSELLER" : null,
           sku: item.sku,
           brand: item.brand,
           material: item.material,
@@ -92,9 +115,14 @@ async function listProducts(req, res) {
 
         return {
           success: true,
-          total: result.total,
-          page: result.page,
-          totalPages: result.totalPages,
+          pagination: {
+            total: result.total,
+            page: result.page,
+            limit,
+            totalPages: result.totalPages,
+            hasNextPage: result.page < result.totalPages,
+            hasPreviousPage: result.page > 1,
+          },
           count: products.length,
           products,
         };
@@ -102,13 +130,13 @@ async function listProducts(req, res) {
       300,
     );
 
-    return res.json(response);
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching products:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch products",
+      message: "Failed to fetch products. Please try again later.",
     });
   }
 }
