@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { Search, Heart, ShoppingBag, ArrowLeft, Star } from "lucide-react";
+import { Search, Heart, ShoppingBag, ArrowLeft } from "lucide-react";
 import { getProductsApi, type Product } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useLayout } from "../../components/layout/useLayout";
@@ -170,7 +170,7 @@ export default function SearchResultPage({
                   </button>
 
                   {/* Product Image */}
-                  <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#EDE5D5]">
+                  <div className="relative w-full overflow-hidden bg-[#EDE5D5]">
                     <img
                       src={product.image || "/images/placeholder.png"}
                       alt={product.name}
@@ -183,7 +183,7 @@ export default function SearchResultPage({
                   </div>
 
                   {/* Content */}
-                  <div className="p-4 flex flex-col flex-grow justify-between">
+                  <div className="p-4 flex flex-col justify-between">
                     <div>
                       <p className="text-[10px] text-[#8C7A6B] font-semibold uppercase tracking-wider mb-1">
                         {product.category}
