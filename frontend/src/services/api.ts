@@ -271,3 +271,7 @@ export async function getOrderTrackingApi(orderId: string | number) {
 export async function getUserOrdersApi() {
   return apiFetch("/user/orders");
 }
+
+export async function getLatestProductsApi(limit: number = 10) {
+  return apiFetch(`/products/latest?limit=${limit}`);
+}
