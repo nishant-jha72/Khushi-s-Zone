@@ -556,6 +556,20 @@ async function getDailySalesData(date = todayIST()) {
   };
 }
 
+async function getLatestProducts(limit = 10) {
+  const result = await query(
+    `SELECT *
+     FROM items
+     WHERE category_id = 1
+       AND is_active = TRUE
+     ORDER BY created_at DESC, id DESC
+     LIMIT $1`,
+    [limit],
+  );
+
+  return result.rows.map(formatProductRow);
+}
+
 module.exports = { getDailySalesData };
 
 module.exports = {
@@ -566,6 +580,7 @@ module.exports = {
   setItemActive,
   deleteItem,
   itemExists,
+  getLatestProducts,
   // Colors
   upsertColor,
   getColors,

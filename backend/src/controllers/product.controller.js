@@ -530,11 +530,43 @@ async function setVariantStatus(req, res) {
   }
 }
 
+const { getCachedData } = require("../utils/cache");
+
+async function getLatestProducts(req, res) {
+  try {
+    const limit = 10;
+
+    const cacheKey = `products:latest:${limit}`;
+
+    const latestProducts = await getCachedData(
+      cacheKey,
+      async () => {
+        return await itemModel.getLatestProducts(limit);
+      },
+      1800, // Cache for 30 minutes
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: latestProducts.length,
+      products: latestProducts,
+    });
+  } catch (error) {
+    console.error("Error fetching latest products:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch latest products",
+    });
+  }
+}
+
 module.exports = {
   listProducts,
   getProduct,
   createProduct,
   updateProduct,
+  getLatestProducts,
   setProductStatus,
   deleteProduct,
   addProductColor,

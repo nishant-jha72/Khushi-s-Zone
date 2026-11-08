@@ -13,13 +13,16 @@ const productController = require("../controllers/product.controller");
 
 const router = express.Router();
 
+router.get("/products/latest", productController.getLatestProducts);
 /**
  * @route   GET /api/categories
  * @desc    Fetch categories from database
  */
 router.get("/categories", async (req, res) => {
   try {
-    const result = await query("SELECT id, name, slug, description, image_url as image FROM categories ORDER BY id ASC");
+    const result = await query(
+      "SELECT id, name, slug, description, image_url as image FROM categories ORDER BY id ASC",
+    );
     res.json({
       success: true,
       categories: result.rows.map((cat) => ({
@@ -32,7 +35,9 @@ router.get("/categories", async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching categories:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch categories" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to fetch categories" });
   }
 });
 
@@ -57,7 +62,7 @@ router.post(
   authenticateToken,
   requireAdmin,
   validateCreateProduct,
-  productController.createProduct
+  productController.createProduct,
 );
 
 /**
@@ -69,7 +74,7 @@ router.put(
   authenticateToken,
   requireAdmin,
   validateUpdateProduct,
-  productController.updateProduct
+  productController.updateProduct,
 );
 
 /**
@@ -80,7 +85,7 @@ router.patch(
   "/products/:id/status",
   authenticateToken,
   requireAdmin,
-  productController.setProductStatus
+  productController.setProductStatus,
 );
 
 /**
@@ -91,7 +96,7 @@ router.delete(
   "/products/:id",
   authenticateToken,
   requireAdmin,
-  productController.deleteProduct
+  productController.deleteProduct,
 );
 
 /**
@@ -102,7 +107,7 @@ router.post(
   "/products/:id/colors",
   authenticateToken,
   requireAdmin,
-  productController.addProductColor
+  productController.addProductColor,
 );
 
 /**
@@ -120,7 +125,7 @@ router.post(
   authenticateToken,
   requireAdmin,
   validateUpsertVariant,
-  productController.upsertVariant
+  productController.upsertVariant,
 );
 
 /**
@@ -131,7 +136,7 @@ router.patch(
   "/products/:id/variants/:variantId/status",
   authenticateToken,
   requireAdmin,
-  productController.setVariantStatus
+  productController.setVariantStatus,
 );
 
 module.exports = router;

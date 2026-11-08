@@ -273,61 +273,6 @@ export async function getUserOrdersApi() {
   return apiFetch("/user/orders");
 }
 
-export interface PromoCode {
-  id: number;
-  code: string;
-  discountType: "FIXED" | "PERCENTAGE";
-  discountValue: number;
-  maxDiscount: number | null;
-  minOrderAmount: number;
-  expiryDate?: string;
-  perUserLimit?: number;
-}
-
-export interface PromoValidationResult {
-  success: boolean;
-  message: string;
-  promo: PromoCode;
-  calculation: {
-    subtotal: number;
-    discount: number;
-    finalAmount: number;
-  };
-}
-
-export async function validatePromoApi(
-  code: string,
-  cartItems: Array<{
-    product?: {
-      itemId?: string | number;
-      id?: string | number;
-    };
-    itemId?: string | number;
-    productId?: string | number;
-    id?: string | number;
-    quantity: number;
-  }>,
-): Promise<PromoValidationResult> {
-  return apiFetch("/promo/validate", {
-    method: "POST",
-    body: JSON.stringify({
-      code,
-      cartItems: cartItems.map((ci) => ({
-        itemId:
-          ci.product?.itemId ||
-          ci.product?.id ||
-          ci.itemId ||
-          ci.productId ||
-          ci.id,
-        quantity: ci.quantity,
-      })),
-    }),
-  });
-}
-
-export async function getAvailablePromosApi(): Promise<{
-  success: boolean;
-  promos: PromoCode[];
-}> {
-  return apiFetch("/promo/available");
+export async function getLatestProductsApi(limit: number = 10) {
+  return apiFetch(`/products/latest?limit=${limit}`);
 }
